@@ -31,8 +31,7 @@ export default function Home() {
 
   const handleBackToMap = () => {
     setSelectedHospital(null);
-    setStep('details'); // Keep details open but hide card
-    setTimeout(() => setStep('map'), 0);
+    setStep('map');
   };
 
   const renderStep = () => {
