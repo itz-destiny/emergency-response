@@ -70,3 +70,18 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.leaflet-popup-content-wrapper {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-radius: var(--radius);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.leaflet-popup-tip {
+    background-color: hsl(var(--card));
+}
+
+.leaflet-popup-close-button {
+    color: hsl(var(--card-foreground)) !important;
+}

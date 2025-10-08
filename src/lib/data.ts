@@ -5,8 +5,8 @@ export interface Hospital {
   phone: string;
   distance: string;
   position: {
-    top: string;
-    left: string;
+    lat: number;
+    lng: number;
   };
 }
 
@@ -17,7 +17,7 @@ export const hospitals: Hospital[] = [
     address: '123 Main St, Anytown, USA',
     phone: '555-123-4567',
     distance: '2.5 km',
-    position: { top: '30%', left: '25%' },
+    position: { lat: 34.052235, lng: -118.243683 },
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ export const hospitals: Hospital[] = [
     address: '456 Oak Ave, Anytown, USA',
     phone: '555-987-6543',
     distance: '4.1 km',
-    position: { top: '65%', left: '40%' },
+    position: { lat: 34.062486, lng: -118.252723 },
   },
   {
     id: 3,
@@ -33,7 +33,7 @@ export const hospitals: Hospital[] = [
     address: '789 Pine Ln, Anytown, USA',
     phone: '555-555-1212',
     distance: '5.8 km',
-    position: { top: '45%', left: '70%' },
+    position: { lat: 34.045472, lng: -118.237433 },
   },
     {
     id: 4,
@@ -41,14 +41,14 @@ export const hospitals: Hospital[] = [
     address: '101 Central Plaza, Anytown, USA',
     phone: '555-333-4444',
     distance: '1.2 km',
-    position: { top: '75%', left: '80%' },
+    position: { lat: 34.056092, lng: -118.236639 },
   },
 ];
 
 export const patientLocation = {
   address: 'You are here',
   position: {
-    top: '50%',
-    left: '50%',
+    lat: 34.0549,
+    lng: -118.2426,
   },
 };

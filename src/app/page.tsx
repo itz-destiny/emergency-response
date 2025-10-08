@@ -1,22 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Building2, Phone, MapPin, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { hospitals, patientLocation } from '@/lib/data';
 import type { Hospital } from '@/lib/data';
-import placeholderData from '@/lib/placeholder-images.json';
 import { AnimatePresence, motion } from 'framer-motion';
+
+const MapContainer = dynamic(() => import('@/components/map-container'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
+});
 
 type Step = 'request' | 'map' | 'details';
 
 export default function Home() {
   const [step, setStep] = useState<Step>('request');
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
-
-  const mapImage = placeholderData.placeholderImages.find((img) => img.id === 'map-background');
 
   const handleRequestEmergency = () => {
     setStep('map');
@@ -29,7 +31,8 @@ export default function Home() {
 
   const handleBackToMap = () => {
     setSelectedHospital(null);
-    setStep('map');
+    setStep('details'); // Keep details open but hide card
+    setTimeout(() => setStep('map'), 0);
   };
 
   const renderStep = () => {
@@ -65,17 +68,12 @@ export default function Home() {
       case 'details':
         return (
           <div className="relative w-full h-full flex-grow overflow-hidden">
-            {mapImage && (
-              <Image
-                src={mapImage.imageUrl}
-                alt={mapImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={mapImage.imageHint}
-                priority
-              />
-            )}
-            <div className="absolute inset-0 bg-black/30" />
+             <MapContainer 
+              patientPosition={patientLocation.position}
+              hospitals={hospitals}
+              onHospitalSelect={handleSelectHospital}
+              selectedHospital={selectedHospital}
+             />
             
             <AnimatePresence>
               {step === 'map' && (
@@ -84,51 +82,13 @@ export default function Home() {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm p-3 rounded-lg shadow-md"
+                    className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-[1000]"
                   >
                     <h2 className="text-xl font-bold text-center">Select a Nearby Hospital</h2>
                   </motion.div>
               )}
             </AnimatePresence>
             
-            {/* Patient Location */}
-            <motion.div
-              className="absolute group"
-              style={{ top: patientLocation.position.top, left: patientLocation.position.left }}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-            >
-              <User className="w-8 h-8 text-white bg-primary rounded-full p-1.5 shadow-lg" />
-               <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-background text-foreground text-xs font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                Your Location
-              </div>
-            </motion.div>
-
-            {/* Hospital Markers */}
-            {hospitals.map((hospital, index) => (
-              <motion.div
-                key={hospital.id}
-                className="absolute group"
-                style={{ top: hospital.position.top, left: hospital.position.left }}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-              >
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="rounded-full shadow-xl w-12 h-12 bg-card hover:bg-card/90"
-                  onClick={() => handleSelectHospital(hospital)}
-                >
-                  <Building2 className="w-6 h-6 text-primary" />
-                </Button>
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max bg-background text-foreground text-xs font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {hospital.name}
-                </div>
-              </motion.div>
-            ))}
-
             <AnimatePresence>
               {step === 'details' && selectedHospital && (
                 <motion.div
@@ -137,7 +97,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 50 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute bottom-0 left-0 right-0 p-4"
+                  className="absolute bottom-0 left-0 right-0 p-4 z-[1000]"
                 >
                   <Card className="max-w-md mx-auto bg-card/95 backdrop-blur-sm shadow-2xl border-primary">
                     <CardHeader>
