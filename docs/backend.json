@@ -1,0 +1,295 @@
+{
+  "entities": {
+    "Patient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Patient",
+      "type": "object",
+      "description": "Represents a patient requesting emergency assistance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Patient entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The patient's name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The patient's phone number."
+        },
+        "locationLatitude": {
+          "type": "number",
+          "description": "The patient's latitude coordinate."
+        },
+        "locationLongitude": {
+          "type": "number",
+          "description": "The patient's longitude coordinate."
+        },
+        "emergencyDescription": {
+          "type": "string",
+          "description": "Description of the emergency."
+        },
+        "requestTimestamp": {
+          "type": "string",
+          "description": "Timestamp of when the emergency request was made.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phoneNumber",
+        "locationLatitude",
+        "locationLongitude",
+        "emergencyDescription",
+        "requestTimestamp"
+      ]
+    },
+    "Hospital": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hospital",
+      "type": "object",
+      "description": "Represents a hospital providing emergency services.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Hospital entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the hospital."
+        },
+        "locationLatitude": {
+          "type": "number",
+          "description": "The hospital's latitude coordinate."
+        },
+        "locationLongitude": {
+          "type": "number",
+          "description": "The hospital's longitude coordinate."
+        },
+        "hotline": {
+          "type": "string",
+          "description": "The hospital's hotline phone number."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "locationLatitude",
+        "locationLongitude",
+        "hotline"
+      ]
+    },
+    "Responder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Responder",
+      "type": "object",
+      "description": "Represents a responder (medic) affiliated with a hospital.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Responder entity."
+        },
+        "hospitalId": {
+          "type": "string",
+          "description": "Reference to Hospital. (Relationship: Hospital 1:N Responder)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The responder's name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The responder's phone number."
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "description": "The responder's current availability status (e.g., 'Available', 'Busy', 'Offline')."
+        },
+        "locationLatitude": {
+          "type": "number",
+          "description": "The responder's latitude coordinate."
+        },
+        "locationLongitude": {
+          "type": "number",
+          "description": "The responder's longitude coordinate."
+        }
+      },
+      "required": [
+        "id",
+        "hospitalId",
+        "name",
+        "phoneNumber",
+        "availabilityStatus"
+      ]
+    },
+    "Admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an administrator of the Rapid Response system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Admin entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The administrator's name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The administrator's email address.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    },
+    "EmergencyResponse": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmergencyResponse",
+      "type": "object",
+      "description": "Represents an emergency response event, linking a patient, hospital, and responder.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the EmergencyResponse entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to Patient. (Relationship: Patient 1:N EmergencyResponse)"
+        },
+        "hospitalId": {
+          "type": "string",
+          "description": "Reference to Hospital. (Relationship: Hospital 1:N EmergencyResponse)"
+        },
+        "responderId": {
+          "type": "string",
+          "description": "Reference to Responder. (Relationship: Responder 1:N EmergencyResponse)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the emergency response (e.g., 'Requested', 'Assigned', 'EnRoute', 'OnScene', 'Resolved', 'Cancelled')."
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Timestamp of when the emergency response started.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "Timestamp of when the emergency response ended (if applicable).",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "hospitalId",
+        "responderId",
+        "status",
+        "startTime"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/patients/{patientId}",
+        "definition": {
+          "entityName": "Patient",
+          "schema": {
+            "$ref": "#/backend/entities/Patient"
+          },
+          "description": "Stores patient data. Path-based ownership.",
+          "params": [
+            {
+              "name": "patientId",
+              "description": "The unique identifier of the patient."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hospitals/{hospitalId}",
+        "definition": {
+          "entityName": "Hospital",
+          "schema": {
+            "$ref": "#/backend/entities/Hospital"
+          },
+          "description": "Stores hospital data.",
+          "params": [
+            {
+              "name": "hospitalId",
+              "description": "The unique identifier of the hospital."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hospitals/{hospitalId}/responders/{responderId}",
+        "definition": {
+          "entityName": "Responder",
+          "schema": {
+            "$ref": "#/backend/entities/Responder"
+          },
+          "description": "Stores responder data. Path-based ownership within a hospital.",
+          "params": [
+            {
+              "name": "hospitalId",
+              "description": "The unique identifier of the hospital."
+            },
+            {
+              "name": "responderId",
+              "description": "The unique identifier of the responder."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "Admin",
+          "schema": {
+            "$ref": "#/backend/entities/Admin"
+          },
+          "description": "Stores admin role. Existence of document grants admin access.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique identifier of the admin."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/emergencyResponses/{emergencyResponseId}",
+        "definition": {
+          "entityName": "EmergencyResponse",
+          "schema": {
+            "$ref": "#/backend/entities/EmergencyResponse"
+          },
+          "description": "Stores emergency response data. Includes denormalized 'hospitalId', 'patientId', and 'responderId' for authorization independence.",
+          "params": [
+            {
+              "name": "emergencyResponseId",
+              "description": "The unique identifier of the emergency response."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support the Rapid Response emergency medical system, prioritizing security, scalability, and real-time data synchronization. The structure emphasizes authorization independence through denormalization and structural segregation.\n\n*   **Authorization Independence:** The `EmergencyResponses` collection denormalizes relevant authorization data, such as `hospitalId` and `responderId` enabling rules to evaluate access without needing `get()` operations.\n*   **Structural Segregation:** Separate collections are used for `Patients`, `Hospitals`, `Responders`, `Admins`, and `EmergencyResponses` to ensure that documents within each collection share the same security requirements.\n*   **QAPs (Querying):** This design supports secure `list` operations. Responders can query emergency responses within their `hospitalId`. Admins have full access based on the admin role collection. Patients can only see the `emergencyResponses` that are owned by them.\n*   **DBAC (Role-Based Access Control):** The admin role is managed using a dedicated collection `roles_admin/{uid}`. The rules check for the existence of a document in this collection.\n\nThis structure promotes clear and maintainable security rules, enabling atomic operations and efficient querying."
+  }
+}
