@@ -14,27 +14,11 @@ const MapContainer = dynamic(() => import('@/components/map-container'), {
   loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
 });
 
-type Step = 'request' | 'map' | 'details';
-
 export default function Home() {
-  const [step, setStep] = useState<Step>('request');
+  const [showMap, setShowMap] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
 
-  const handleRequestEmergency = () => {
-    setStep('map');
-  };
-
-  const handleSelectHospital = (hospital: Hospital) => {
-    setSelectedHospital(hospital);
-    setStep('details');
-  };
-
-  const handleBackToMap = () => {
-    setSelectedHospital(null);
-    setStep('map');
-  };
-  
-  if (step === 'request') {
+  if (!showMap) {
     return (
         <div className="flex-grow flex flex-col items-center justify-center bg-background">
             <motion.div
@@ -55,7 +39,7 @@ export default function Home() {
                 </p>
                 <Button
                 size="lg"
-                onClick={handleRequestEmergency}
+                onClick={() => setShowMap(true)}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground h-20 px-12 text-2xl rounded-full shadow-lg transform hover:scale-105 transition-transform"
                 >
                 Request Emergency
@@ -68,28 +52,28 @@ export default function Home() {
   return (
     <div className="relative w-full h-full flex-grow overflow-hidden">
         <MapContainer 
-        patientPosition={patientLocation.position}
-        hospitals={hospitals}
-        onHospitalSelect={handleSelectHospital}
-        selectedHospital={selectedHospital}
+            patientPosition={patientLocation.position}
+            hospitals={hospitals}
+            onHospitalSelect={setSelectedHospital}
+            selectedHospital={selectedHospital}
         />
     
         <AnimatePresence>
-            {step === 'map' && (
+            {!selectedHospital && (
                 <motion.div
-                key="map-title"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-[1000]"
+                    key="map-title"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-[1000]"
                 >
-                <h2 className="text-xl font-bold text-center">Select a Nearby Hospital</h2>
+                    <h2 className="text-xl font-bold text-center">Select a Nearby Hospital</h2>
                 </motion.div>
             )}
         </AnimatePresence>
         
         <AnimatePresence>
-            {step === 'details' && selectedHospital && (
+            {selectedHospital && (
             <motion.div
                 key="details-card"
                 initial={{ opacity: 0, y: 50 }}
@@ -126,7 +110,7 @@ export default function Home() {
                         <Phone className="mr-2" /> Call Hotline
                         </a>
                     </Button>
-                    <Button variant="outline" onClick={handleBackToMap} className="w-full">
+                    <Button variant="outline" onClick={() => setSelectedHospital(null)} className="w-full">
                         Back to Map
                     </Button>
                     </div>
