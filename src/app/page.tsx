@@ -9,7 +9,7 @@ import { hospitals, patientLocation } from '@/lib/data';
 import type { Hospital } from '@/lib/data';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const MapContainer = dynamic(() => import('@/components/map-container'), {
+const MapController = dynamic(() => import('@/components/map-controller'), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
 });
@@ -51,7 +51,7 @@ export default function Home() {
 
   return (
     <div className="relative w-full h-full flex-grow overflow-hidden">
-        <MapContainer 
+        <MapController
             patientPosition={patientLocation.position}
             hospitals={hospitals}
             onHospitalSelect={setSelectedHospital}

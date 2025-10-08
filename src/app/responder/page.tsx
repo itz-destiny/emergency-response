@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { patientLocation } from '@/lib/data';
 import { motion } from 'framer-motion';
 
-const MapContainer = dynamic(() => import('@/components/map-container'), {
+const MapController = dynamic(() => import('@/components/map-controller'), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
 });
@@ -17,7 +17,7 @@ export default function ResponderPage() {
   return (
     <div className="flex-grow flex flex-col items-center justify-center bg-background">
       <div className="relative w-full h-full flex-grow overflow-hidden">
-        <MapContainer 
+        <MapController 
             patientPosition={patientLocation.position}
             isResponderView={true}
         />
