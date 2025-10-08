@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { hospitals, patientLocation } from '@/lib/data';
 import type { Hospital } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import placeholderData from '@/lib/placeholder-images.json';
 import { AnimatePresence, motion } from 'framer-motion';
 
 type Step = 'request' | 'map' | 'details';
@@ -16,7 +16,7 @@ export default function Home() {
   const [step, setStep] = useState<Step>('request');
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
 
-  const mapImage = PlaceHolderImages.find((img) => img.id === 'map-background');
+  const mapImage = placeholderData.placeholderImages.find((img) => img.id === 'map-background');
 
   const handleRequestEmergency = () => {
     setStep('map');

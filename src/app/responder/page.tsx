@@ -4,11 +4,11 @@ import Image from 'next/image';
 import { User, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { patientLocation } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import placeholderData from '@/lib/placeholder-images.json';
 import { motion } from 'framer-motion';
 
 export default function ResponderPage() {
-  const mapImage = PlaceHolderImages.find((img) => img.id === 'map-background');
+  const mapImage = placeholderData.placeholderImages.find((img) => img.id === 'map-background');
 
   return (
     <div className="flex-grow flex flex-col items-center justify-center bg-background">
