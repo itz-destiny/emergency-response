@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, List, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import {
@@ -17,6 +17,8 @@ import {
   useCollection,
   useFirebase,
   useMemoFirebase,
+  initiateAnonymousSignIn,
+  useUser,
 } from '@/firebase';
 import {
   collection,
@@ -47,18 +49,25 @@ interface Emergency {
 }
 
 export default function ResponderPage() {
-  const { firestore } = useFirebase();
+  const { firestore, auth } = useFirebase();
+  const { user, isUserLoading } = useUser();
   const [selectedEmergency, setSelectedEmergency] =
     useState<Emergency | null>(null);
 
+  useEffect(() => {
+    if (auth && !user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth, user, isUserLoading]);
+
   const emergenciesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(
       collection(firestore, 'emergencies'),
       where('status', 'in', ['requested', 'accepted']),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
   const {
     data: emergencies,
@@ -69,7 +78,7 @@ export default function ResponderPage() {
   const handleAcceptEmergency = (emergencyId: string) => {
     if (!firestore) return;
     const emergencyRef = doc(firestore, 'emergencies', emergencyId);
-    updateDocumentNonBlocking(emergencyRef, { status: 'accepted' });
+    updateDocumentNonBlocking(emergencyRef, { status: 'accepted', responderId: user?.uid });
   };
 
   const patientPosition = selectedEmergency
@@ -89,9 +98,10 @@ export default function ResponderPage() {
           </h2>
         </div>
         <ScrollArea className="flex-1">
-          {isLoading && <p className="p-4">Loading emergencies...</p>}
-          {error && <p className="p-4 text-destructive">Error loading emergencies.</p>}
-          {emergencies && emergencies.length === 0 && (
+          {(isLoading || isUserLoading) && <p className="p-4">Loading emergencies...</p>}
+          {error && <p className="p-4 text-destructive">Error loading emergencies. Ensure you have permissions.</p>}
+          {!isUserLoading && !user && <p className="p-4 text-muted-foreground">Authenticating...</p>}
+          {user && emergencies && emergencies.length === 0 && (
             <p className="p-4 text-muted-foreground">No active emergencies.</p>
           )}
           <div className="flex flex-col">
@@ -121,10 +131,10 @@ export default function ResponderPage() {
                     {emergency.status.toUpperCase()}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(
+                    {emergency.createdAt ? formatDistanceToNow(
                       new Date(emergency.createdAt.seconds * 1000),
                       { addSuffix: true }
-                    )}
+                    ) : ''}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground truncate">
@@ -186,10 +196,10 @@ export default function ResponderPage() {
               <CardContent>
                 <p className="mb-4">
                   <strong>Received:</strong>{' '}
-                  {formatDistanceToNow(
+                  {selectedEmergency.createdAt ? formatDistanceToNow(
                     new Date(selectedEmergency.createdAt.seconds * 1000),
                     { addSuffix: true }
-                  )}
+                  ) : 'Awaiting timestamp'}
                 </p>
                 {selectedEmergency.status === 'requested' && (
                   <Button
