@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Rapid Response',
   description: 'Emergency medical response system',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -24,6 +25,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        <meta name="theme-color" content="#29ABE2" />
       </head>
       <body
         className={cn(
