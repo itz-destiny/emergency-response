@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
 import { cn } from '@/lib/utils';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Rapid Response',
@@ -33,15 +34,17 @@ export default function RootLayout({
           'bg-background'
         )}
       >
-        <Header />
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Toaster />
-        <footer className="py-4 px-6 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Rapid Response. All rights reserved.</p>
-          <Link href="/responder" className="text-primary hover:underline">
-            Switch to Responder View
-          </Link>
-        </footer>
+        <FirebaseClientProvider>
+          <Header />
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Toaster />
+          <footer className="py-4 px-6 text-center text-sm text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} Rapid Response. All rights reserved.</p>
+            <Link href="/responder" className="text-primary hover:underline">
+              Switch to Responder View
+            </Link>
+          </footer>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

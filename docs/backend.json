@@ -150,51 +150,38 @@
         "email"
       ]
     },
-    "EmergencyResponse": {
+    "Emergency": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "EmergencyResponse",
+      "title": "Emergency",
       "type": "object",
-      "description": "Represents an emergency response event, linking a patient, hospital, and responder.",
+      "description": "Represents a single emergency event.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the EmergencyResponse entity."
+          "description": "Unique identifier for the Emergency."
         },
-        "patientId": {
-          "type": "string",
-          "description": "Reference to Patient. (Relationship: Patient 1:N EmergencyResponse)"
-        },
-        "hospitalId": {
-          "type": "string",
-          "description": "Reference to Hospital. (Relationship: Hospital 1:N EmergencyResponse)"
-        },
-        "responderId": {
-          "type": "string",
-          "description": "Reference to Responder. (Relationship: Responder 1:N EmergencyResponse)"
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "required": ["lat", "lng"]
         },
         "status": {
           "type": "string",
-          "description": "The current status of the emergency response (e.g., 'Requested', 'Assigned', 'EnRoute', 'OnScene', 'Resolved', 'Cancelled')."
+          "enum": ["requested", "accepted", "resolved"]
         },
-        "startTime": {
+        "createdAt": {
           "type": "string",
-          "description": "Timestamp of when the emergency response started.",
           "format": "date-time"
         },
-        "endTime": {
+        "responderId": {
           "type": "string",
-          "description": "Timestamp of when the emergency response ended (if applicable).",
-          "format": "date-time"
+          "description": "ID of the responder who accepted the emergency."
         }
       },
-      "required": [
-        "id",
-        "patientId",
-        "hospitalId",
-        "responderId",
-        "status",
-        "startTime"
-      ]
+      "required": ["id", "location", "status", "createdAt"]
     }
   },
   "auth": {
@@ -204,92 +191,12 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/patients/{patientId}",
-        "definition": {
-          "entityName": "Patient",
-          "schema": {
-            "$ref": "#/backend/entities/Patient"
-          },
-          "description": "Stores patient data. Path-based ownership.",
-          "params": [
-            {
-              "name": "patientId",
-              "description": "The unique identifier of the patient."
-            }
-          ]
-        }
+    "rules": "rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    // Emergencies can be created by anyone.\n    // They can be read by anyone.\n    // They can only be updated by an authenticated user (a responder).\n    match /emergencies/{emergencyId} {\n      allow read, create: if true;\n      allow update: if request.auth != null;\n    }\n\n    // Default deny all other collections\n    match /{document=**} {\n      allow read, write: if false;\n    }\n  }\n}",
+    "/emergencies/{emergencyId}": {
+      "schema": {
+        "$ref": "#/entities/Emergency"
       },
-      {
-        "path": "/hospitals/{hospitalId}",
-        "definition": {
-          "entityName": "Hospital",
-          "schema": {
-            "$ref": "#/backend/entities/Hospital"
-          },
-          "description": "Stores hospital data.",
-          "params": [
-            {
-              "name": "hospitalId",
-              "description": "The unique identifier of the hospital."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/hospitals/{hospitalId}/responders/{responderId}",
-        "definition": {
-          "entityName": "Responder",
-          "schema": {
-            "$ref": "#/backend/entities/Responder"
-          },
-          "description": "Stores responder data. Path-based ownership within a hospital.",
-          "params": [
-            {
-              "name": "hospitalId",
-              "description": "The unique identifier of the hospital."
-            },
-            {
-              "name": "responderId",
-              "description": "The unique identifier of the responder."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{adminId}",
-        "definition": {
-          "entityName": "Admin",
-          "schema": {
-            "$ref": "#/backend/entities/Admin"
-          },
-          "description": "Stores admin role. Existence of document grants admin access.",
-          "params": [
-            {
-              "name": "adminId",
-              "description": "The unique identifier of the admin."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/emergencyResponses/{emergencyResponseId}",
-        "definition": {
-          "entityName": "EmergencyResponse",
-          "schema": {
-            "$ref": "#/backend/entities/EmergencyResponse"
-          },
-          "description": "Stores emergency response data. Includes denormalized 'hospitalId', 'patientId', and 'responderId' for authorization independence.",
-          "params": [
-            {
-              "name": "emergencyResponseId",
-              "description": "The unique identifier of the emergency response."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "This Firestore structure is designed to support the Rapid Response emergency medical system, prioritizing security, scalability, and real-time data synchronization. The structure emphasizes authorization independence through denormalization and structural segregation.\n\n*   **Authorization Independence:** The `EmergencyResponses` collection denormalizes relevant authorization data, such as `hospitalId` and `responderId` enabling rules to evaluate access without needing `get()` operations.\n*   **Structural Segregation:** Separate collections are used for `Patients`, `Hospitals`, `Responders`, `Admins`, and `EmergencyResponses` to ensure that documents within each collection share the same security requirements.\n*   **QAPs (Querying):** This design supports secure `list` operations. Responders can query emergency responses within their `hospitalId`. Admins have full access based on the admin role collection. Patients can only see the `emergencyResponses` that are owned by them.\n*   **DBAC (Role-Based Access Control):** The admin role is managed using a dedicated collection `roles_admin/{uid}`. The rules check for the existence of a document in this collection.\n\nThis structure promotes clear and maintainable security rules, enabling atomic operations and efficient querying."
+      "description": "Stores individual emergency requests."
+    }
   }
 }

@@ -44,11 +44,3 @@ export const hospitals: Hospital[] = [
     position: { lat: 6.5968, lng: 3.3482 },
   },
 ];
-
-export const patientLocation = {
-  address: 'You are here',
-  position: {
-    lat: 6.465422,
-    lng: 3.406448,
-  },
-};
