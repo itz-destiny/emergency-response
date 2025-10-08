@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Building2, Phone, MapPin, AlertTriangle, User } from 'lucide-react';
+import { Building2, Phone, MapPin, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { hospitals, patientLocation } from '@/lib/data';
