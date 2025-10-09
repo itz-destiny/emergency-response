@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Building2, Phone, MapPin, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ const MapController = dynamic(() => import('@/components/map-controller'), {
 });
 
 export default function Home() {
-  const [showMap, setShowMap] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(
     null
   );
@@ -32,70 +31,39 @@ export default function Home() {
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRequestEmergency = () => {
+  useEffect(() => {
+    // Set a default location (Port Harcourt) initially.
+    const defaultLocation = { lat: 4.8156, lng: 7.0498 };
+    setPatientLocation(defaultLocation);
+
+    // Then try to get the user's actual location.
     setIsLocating(true);
-    setError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const newPatientLocation = { lat: latitude, lng: longitude };
-        setPatientLocation(newPatientLocation);
-        setShowMap(true);
+        setPatientLocation({ lat: latitude, lng: longitude });
         setIsLocating(false);
       },
       (err) => {
-        setError(`Error getting location: ${err.message}`);
+        setError(`Could not get your location. Showing default location. Error: ${err.message}`);
         setIsLocating(false);
-        // Fallback to default location for demo purposes (Port Harcourt)
-        const fallbackLocation = { lat: 4.8156, lng: 7.0498 };
-        setPatientLocation(fallbackLocation);
-        setShowMap(true);
       }
     );
-  };
-
-  if (!showMap) {
-    return (
-      <div className="flex-grow flex flex-col items-center justify-center bg-background">
-        <motion.div
-          key="request"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center justify-center text-center h-full p-4"
-        >
-          <AlertTriangle className="w-24 h-24 text-destructive mb-6" />
-          <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">
-            Emergency Assistance Needed?
-          </h1>
-          <p className="text-muted-foreground max-w-md mb-8">
-            Press the button below to share your location and find the nearest
-            hospitals.
-          </p>
-          <Button
-            size="lg"
-            onClick={handleRequestEmergency}
-            disabled={isLocating}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground h-20 px-12 text-2xl rounded-full shadow-lg transform hover:scale-105 transition-transform"
-          >
-            {isLocating ? <Loader2 className="animate-spin" /> : 'Request Emergency'}
-          </Button>
-          {error && <p className="text-destructive mt-4">{error}</p>}
-        </motion.div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className="relative w-full h-full flex-grow overflow-hidden">
-      {patientLocation && (
+      {patientLocation ? (
         <MapController
           patientPosition={patientLocation}
           hospitals={hospitals}
           onHospitalSelect={setSelectedHospital}
           selectedHospital={selectedHospital}
         />
+      ) : (
+        <div className="w-full h-full bg-muted flex items-center justify-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
       )}
 
       <AnimatePresence>
@@ -108,8 +76,10 @@ export default function Home() {
             className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm p-3 rounded-lg shadow-md z-[1000]"
           >
             <h2 className="text-xl font-bold text-center">
-              Select a Nearby Hospital
+              Nearby Hospitals in Port Harcourt
             </h2>
+             {isLocating && <p className="text-xs text-center text-muted-foreground animate-pulse">Getting your current location...</p>}
+             {error && <p className="text-xs text-center text-destructive">{error}</p>}
           </motion.div>
         )}
       </AnimatePresence>
