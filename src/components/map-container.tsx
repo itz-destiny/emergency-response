@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { MapContainer as LeafletMapContainer, TileLayer } from 'react-leaflet';
+import type { Map } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -20,6 +22,7 @@ interface MapContainerProps {
 const MapContainer = (props: MapContainerProps) => {
   const { patientPosition } = props;
   const initialCenter = patientPosition || [4.8156, 7.0498];
+  const [map, setMap] = useState<Map | null>(null);
 
   return (
     <LeafletMapContainer
@@ -27,9 +30,11 @@ const MapContainer = (props: MapContainerProps) => {
       zoom={13}
       style={{ height: '100%', width: '100%', zIndex: 0 }}
       attributionControl={false}
+      whenCreated={setMap}
+      placeholder={<div className="bg-muted animate-pulse w-full h-full" />}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <MapController {...props} />
+      {map ? <MapController {...props} /> : null}
     </LeafletMapContainer>
   );
 };
