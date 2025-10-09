@@ -54,24 +54,18 @@ export function MapController({
   responder,
 }: MapControllerProps) {
 
-  useEffect(() => {
-    if (patientPosition) {
-      map.setView(patientPosition, 14);
-    }
-  }, [patientPosition, map]);
-
+  // Effect to update map view
   useEffect(() => {
     if (selectedHospital) {
       map.setView([selectedHospital.location.lat, selectedHospital.location.lng], 15);
-    }
-  }, [selectedHospital, map]);
-
-  useEffect(() => {
-    if (responder?.position) {
+    } else if (patientPosition) {
+      map.setView(patientPosition, 14);
+    } else if (responder?.position) {
         map.setView(responder.position, 14);
     }
-  }, [responder, map]);
+  }, [patientPosition, selectedHospital, responder?.position, map]);
 
+  // Effect to update markers
   useEffect(() => {
     // Clear existing markers to prevent duplicates
     map.eachLayer((layer) => {
