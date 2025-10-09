@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
 import { Hospital } from '@/lib/data';
 import L, { Map } from 'leaflet';
-import ReactDOMServer from 'react-dom/server';
 
 const hospitalIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/128/3308/3308823.png',
@@ -83,39 +81,28 @@ export function MapController({
     });
 
     hospitals.forEach((hospital) => {
-        const popupContent = ReactDOMServer.renderToString(
-            <Popup>
-              <b>{hospital.name}</b>
-              <br />
-              Beds: {hospital.availability.beds} | Ambulances: {hospital.availability.ambulances}
-              <br />
-              Hotline: {hospital.hotline}
-            </Popup>
-        );
+        const popupContent = `<b>${hospital.name}</b><br/>Beds: ${hospital.availability.beds} | Ambulances: ${hospital.availability.ambulances}<br/>Hotline: ${hospital.hotline}`;
         L.marker([hospital.location.lat, hospital.location.lng], { icon: hospitalIcon })
         .addTo(map)
         .bindPopup(popupContent);
     });
 
     if (patientPosition && !responder) {
-        const popupContent = ReactDOMServer.renderToString(<Popup>Your current location</Popup>);
         L.marker(patientPosition, { icon: patientIcon })
         .addTo(map)
-        .bindPopup(popupContent);
+        .bindPopup('Your current location');
     }
 
     if (responder?.position) {
-        const popupContent = ReactDOMServer.renderToString(<Popup>Your position</Popup>);
         L.marker(responder.position, { icon: responderIcon })
         .addTo(map)
-        .bindPopup(popupContent);
+        .bindPopup('Your position');
     }
     
     if (responder?.patientPosition) {
-        const popupContent = ReactDOMServer.renderToString(<Popup>Patient's Location</Popup>);
         L.marker(responder.patientPosition, { icon: responderPatientIcon })
         .addTo(map)
-        .bindPopup(popupContent);
+        .bindPopup("Patient's Location");
     }
 
   }, [hospitals, patientPosition, responder, map]);
