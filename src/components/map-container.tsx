@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { MapContainer as LeafletMapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
@@ -21,19 +22,23 @@ const MapContainer = (props: MapContainerProps) => {
   const { patientPosition } = props;
   const initialCenter = patientPosition || [4.8156, 7.0498];
 
-  return (
-    <LeafletMapContainer
-      center={initialCenter}
-      zoom={13}
-      style={{ height: '100%', width: '100%', zIndex: 0 }}
-      attributionControl={false}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapController {...props} />
-    </LeafletMapContainer>
+  const map = useMemo(
+    () => (
+      <LeafletMapContainer
+        center={initialCenter}
+        zoom={13}
+        style={{ height: '100%', width: '100%', zIndex: 0 }}
+        attributionControl={false}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapController {...props} />
+      </LeafletMapContainer>
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   );
+
+  return <>{map}</>;
 };
 
 export default MapContainer;
