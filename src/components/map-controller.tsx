@@ -89,9 +89,9 @@ export default function MapController({
         mapInstance.current = null;
       }
     };
-  }, []); // Pass empty array to run only once on mount.
+  }, []); // Run only once on mount to initialize map
 
-  // Update map view based on selection
+  // Update map view based on selection or patient position change
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
@@ -100,7 +100,7 @@ export default function MapController({
       ? [selectedHospital.position.lat, selectedHospital.position.lng]
       : [patientPosition.lat, patientPosition.lng];
     const zoom = selectedHospital ? 14 : 13;
-    map.setView(center, zoom);
+    map.setView(center, zoom, { animate: true });
 
   }, [patientPosition, selectedHospital]);
 
@@ -131,9 +131,11 @@ export default function MapController({
               .addTo(map)
               .bindPopup(hospital.name);
             
-            marker.on('click', () => {
-              onHospitalSelect?.(hospital);
-            });
+            if (onHospitalSelect) {
+              marker.on('click', () => {
+                onHospitalSelect(hospital);
+              });
+            }
             hospitalMarkers.current.push(marker);
         });
     }
