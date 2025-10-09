@@ -24,20 +24,17 @@ export default function Home() {
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(
     null
   );
+  // Initialize with a default location in Port Harcourt, Nigeria
   const [patientLocation, setPatientLocation] = useState<{
     lat: number;
     lng: number;
-  } | null>(null);
+  } | null>({ lat: 4.8156, lng: 7.0498 });
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set a default location (Port Harcourt) initially.
-    const defaultLocation = { lat: 4.8156, lng: 7.0498 };
-    setPatientLocation(defaultLocation);
-
-    // Then try to get the user's actual location.
     setIsLocating(true);
+    setError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -45,8 +42,14 @@ export default function Home() {
         setIsLocating(false);
       },
       (err) => {
-        setError(`Could not get your location. Showing default location. Error: ${err.message}`);
+        setError(`Could not get your location. Showing default location.`);
+        // The location is already defaulted, so we just stop the loading indicator.
         setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
       }
     );
   }, []);
