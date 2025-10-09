@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/header';
+import Footer from '@/components/footer';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -36,12 +36,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1 flex flex-col">{children}</main>
         <Toaster />
-        <footer className="py-4 px-6 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Rapid Response. All rights reserved.</p>
-          <Link href="/responder" className="text-primary hover:underline">
-            Switch to Responder View
-          </Link>
-        </footer>
+        <Footer />
       </body>
     </html>
   );
