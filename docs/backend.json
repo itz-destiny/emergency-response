@@ -179,9 +179,13 @@
         "responderId": {
           "type": "string",
           "description": "ID of the responder who accepted the emergency."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who created the emergency."
         }
       },
-      "required": ["id", "location", "status", "createdAt"]
+      "required": ["id", "location", "status", "createdAt", "userId"]
     }
   },
   "auth": {

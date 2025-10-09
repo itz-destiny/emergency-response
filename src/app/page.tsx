@@ -14,7 +14,7 @@ import {
 import { hospitals } from '@/lib/data';
 import type { Hospital } from '@/lib/data';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useFirebase } from '@/firebase';
+import { useFirebase, initiateAnonymousSignIn, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, serverTimestamp } from 'firebase/firestore';
 
@@ -35,9 +35,22 @@ export default function Home() {
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { firestore } = useFirebase();
+  const { firestore, auth } = useFirebase();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (auth && !user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth, user, isUserLoading]);
 
   const handleRequestEmergency = () => {
+    if (!user) {
+      setError("Not authenticated. Please wait a moment and try again.");
+      if (auth) initiateAnonymousSignIn(auth);
+      return;
+    }
+
     setIsLocating(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
@@ -54,6 +67,7 @@ export default function Home() {
             location: newPatientLocation,
             status: 'requested',
             createdAt: serverTimestamp(),
+            userId: user.uid,
           });
         }
       },
@@ -61,8 +75,18 @@ export default function Home() {
         setError(`Error getting location: ${err.message}`);
         setIsLocating(false);
         // Fallback to default location for demo purposes
-        setPatientLocation({ lat: 6.465422, lng: 3.406448 });
+        const fallbackLocation = { lat: 6.465422, lng: 3.406448 };
+        setPatientLocation(fallbackLocation);
         setShowMap(true);
+        if (firestore) {
+          const emergenciesCol = collection(firestore, 'emergencies');
+          addDocumentNonBlocking(emergenciesCol, {
+            location: fallbackLocation,
+            status: 'requested',
+            createdAt: serverTimestamp(),
+            userId: user.uid,
+          });
+        }
       }
     );
   };
@@ -89,12 +113,13 @@ export default function Home() {
           <Button
             size="lg"
             onClick={handleRequestEmergency}
-            disabled={isLocating}
+            disabled={isLocating || isUserLoading}
             className="bg-accent hover:bg-accent/90 text-accent-foreground h-20 px-12 text-2xl rounded-full shadow-lg transform hover:scale-105 transition-transform"
           >
-            {isLocating ? <Loader2 className="animate-spin" /> : 'Request Emergency'}
+            {isLocating || isUserLoading ? <Loader2 className="animate-spin" /> : 'Request Emergency'}
           </Button>
           {error && <p className="text-destructive mt-4">{error}</p>}
+          {!user && isUserLoading && <p className="text-muted-foreground mt-4">Initializing...</p>}
         </motion.div>
       </div>
     );
