@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, List, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import {
@@ -13,21 +13,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import {
-  useCollection,
-  useFirebase,
-  useMemoFirebase,
-  initiateAnonymousSignIn,
-  useUser,
-} from '@/firebase';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  doc,
-} from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { formatDistanceToNow } from 'date-fns';
 
 const MapController = dynamic(() => import('@/components/map-controller'), {
@@ -35,6 +20,7 @@ const MapController = dynamic(() => import('@/components/map-controller'), {
   loading: () => <div className="w-full h-full bg-muted animate-pulse" />,
 });
 
+// Mock data since we removed Firebase
 interface Emergency {
   id: string;
   location: {
@@ -48,37 +34,16 @@ interface Emergency {
   };
 }
 
+const mockEmergencies: Emergency[] = []; // No emergencies by default now
+
 export default function ResponderPage() {
-  const { firestore, auth } = useFirebase();
-  const { user, isUserLoading } = useUser();
   const [selectedEmergency, setSelectedEmergency] =
     useState<Emergency | null>(null);
-
-  useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [auth, user, isUserLoading]);
-
-  const emergenciesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'emergencies'),
-      where('status', 'in', ['requested', 'accepted']),
-      orderBy('createdAt', 'desc')
-    );
-  }, [firestore, user]);
-
-  const {
-    data: emergencies,
-    isLoading,
-    error,
-  } = useCollection<Emergency>(emergenciesQuery);
-
+  const [emergencies] = useState<Emergency[]>(mockEmergencies);
+  
   const handleAcceptEmergency = (emergencyId: string) => {
-    if (!firestore) return;
-    const emergencyRef = doc(firestore, 'emergencies', emergencyId);
-    updateDocumentNonBlocking(emergencyRef, { status: 'accepted', responderId: user?.uid });
+    // This is now a mock function
+    console.log(`Accepted emergency: ${emergencyId}`);
   };
 
   const patientPosition = selectedEmergency
@@ -98,14 +63,11 @@ export default function ResponderPage() {
           </h2>
         </div>
         <ScrollArea className="flex-1">
-          {(isLoading || isUserLoading) && <p className="p-4">Loading emergencies...</p>}
-          {error && <p className="p-4 text-destructive">Error loading emergencies. Ensure you have permissions.</p>}
-          {!isUserLoading && !user && <p className="p-4 text-muted-foreground">Authenticating...</p>}
-          {user && emergencies && emergencies.length === 0 && (
+          {emergencies.length === 0 && (
             <p className="p-4 text-muted-foreground">No active emergencies.</p>
           )}
           <div className="flex flex-col">
-            {emergencies?.map((emergency) => (
+            {emergencies.map((emergency) => (
               <button
                 key={emergency.id}
                 onClick={() => setSelectedEmergency(emergency)}

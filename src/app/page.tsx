@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Building2, Phone, MapPin, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,6 @@ import {
 import { hospitals } from '@/lib/data';
 import type { Hospital } from '@/lib/data';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useFirebase, initiateAnonymousSignIn, useUser } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection, serverTimestamp } from 'firebase/firestore';
 
 const MapController = dynamic(() => import('@/components/map-controller'), {
   ssr: false,
@@ -34,23 +31,8 @@ export default function Home() {
   } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const { firestore, auth } = useFirebase();
-  const { user, isUserLoading } = useUser();
-
-  useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [auth, user, isUserLoading]);
 
   const handleRequestEmergency = () => {
-    if (!user) {
-      setError("Not authenticated. Please wait a moment and try again.");
-      if (auth) initiateAnonymousSignIn(auth);
-      return;
-    }
-
     setIsLocating(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
@@ -60,16 +42,6 @@ export default function Home() {
         setPatientLocation(newPatientLocation);
         setShowMap(true);
         setIsLocating(false);
-
-        if (firestore) {
-          const emergenciesCol = collection(firestore, 'emergencies');
-          addDocumentNonBlocking(emergenciesCol, {
-            location: newPatientLocation,
-            status: 'requested',
-            createdAt: serverTimestamp(),
-            userId: user.uid,
-          });
-        }
       },
       (err) => {
         setError(`Error getting location: ${err.message}`);
@@ -78,15 +50,6 @@ export default function Home() {
         const fallbackLocation = { lat: 6.465422, lng: 3.406448 };
         setPatientLocation(fallbackLocation);
         setShowMap(true);
-        if (firestore) {
-          const emergenciesCol = collection(firestore, 'emergencies');
-          addDocumentNonBlocking(emergenciesCol, {
-            location: fallbackLocation,
-            status: 'requested',
-            createdAt: serverTimestamp(),
-            userId: user.uid,
-          });
-        }
       }
     );
   };
@@ -113,13 +76,12 @@ export default function Home() {
           <Button
             size="lg"
             onClick={handleRequestEmergency}
-            disabled={isLocating || isUserLoading}
+            disabled={isLocating}
             className="bg-accent hover:bg-accent/90 text-accent-foreground h-20 px-12 text-2xl rounded-full shadow-lg transform hover:scale-105 transition-transform"
           >
-            {isLocating || isUserLoading ? <Loader2 className="animate-spin" /> : 'Request Emergency'}
+            {isLocating ? <Loader2 className="animate-spin" /> : 'Request Emergency'}
           </Button>
           {error && <p className="text-destructive mt-4">{error}</p>}
-          {!user && isUserLoading && <p className="text-muted-foreground mt-4">Initializing...</p>}
         </motion.div>
       </div>
     );

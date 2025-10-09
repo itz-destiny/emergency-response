@@ -193,13 +193,5 @@
       "password",
       "anonymous"
     ]
-  },
-  "firestore": {
-    "/emergencies/{emergencyId}": {
-      "schema": {
-        "$ref": "#/entities/Emergency"
-      },
-      "description": "Stores individual emergency requests."
-    }
   }
 }
