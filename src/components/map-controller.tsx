@@ -67,6 +67,7 @@ export default function MapController({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const hospitalMarkers = useRef<L.Marker[]>([]);
+  const patientMarker = useRef<L.Marker | null>(null);
 
   // Initialize map
   useEffect(() => {
@@ -88,35 +89,41 @@ export default function MapController({
         mapInstance.current = null;
       }
     };
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []); // Pass empty array to run only once on mount.
 
-  // Update map view and markers
+  // Update map view based on selection
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
     
-    // Update center and zoom
     const center: L.LatLngTuple = selectedHospital
       ? [selectedHospital.position.lat, selectedHospital.position.lng]
       : [patientPosition.lat, patientPosition.lng];
     const zoom = selectedHospital ? 14 : 13;
     map.setView(center, zoom);
 
-    // Clear existing markers
-    map.eachLayer(layer => {
-      if (layer instanceof L.Marker) {
-        map.removeLayer(layer);
-      }
-    });
+  }, [patientPosition, selectedHospital]);
 
-    // Add patient marker
-    const patientIcon = isResponderView ? responderPatientIcon : userIcon;
-    L.marker([patientPosition.lat, patientPosition.lng], { icon: patientIcon })
-      .addTo(map)
-      .bindPopup('You are here');
+  // Update markers
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
 
-    // Add hospital markers
+    // Update patient marker
+    const currentPatientIcon = isResponderView ? responderPatientIcon : userIcon;
+    if (patientMarker.current) {
+      patientMarker.current.setLatLng([patientPosition.lat, patientPosition.lng]);
+      patientMarker.current.setIcon(currentPatientIcon);
+    } else {
+      patientMarker.current = L.marker([patientPosition.lat, patientPosition.lng], { icon: currentPatientIcon })
+        .addTo(map)
+        .bindPopup('You are here');
+    }
+    
+    // Clear and redraw hospital markers
+    hospitalMarkers.current.forEach(marker => map.removeLayer(marker));
     hospitalMarkers.current = [];
+    
     if(hospitals) {
         hospitals.forEach(hospital => {
             const icon = selectedHospital?.id === hospital.id ? selectedHospitalIcon : hospitalIcon;
