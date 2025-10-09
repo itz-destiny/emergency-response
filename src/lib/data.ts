@@ -10,37 +10,38 @@ export interface Hospital {
   };
 }
 
+// Data centered around Port Harcourt, Rivers State, Nigeria
 export const hospitals: Hospital[] = [
   {
     id: 1,
-    name: 'Lagos University Teaching Hospital (LUTH)',
-    address: 'Idi-Araba, Mushin, Lagos',
-    phone: '+234 1 585 0697',
-    distance: '8.5 km',
-    position: { lat: 6.5193, lng: 3.3639 },
+    name: 'University of Port Harcourt Teaching Hospital (UPTH)',
+    address: 'East West Rd, Choba, Port Harcourt',
+    phone: '+234 812 123 4567',
+    distance: '11.2 km',
+    position: { lat: 4.908, lng: 6.923 },
   },
   {
     id: 2,
-    name: 'St. Nicholas Hospital',
-    address: '57 Campbell St, Lagos Island, Lagos',
-    phone: '+234 1 277 5650',
-    distance: '2.1 km',
-    position: { lat: 6.4520, lng: 3.3934 },
+    name: 'Rivers State University Teaching Hospital (RSUTH)',
+    address: 'BMSH, 2 B Hospital Road, Port Harcourt',
+    phone: '+234 809 987 6543',
+    distance: '3.5 km',
+    position: { lat: 4.781, lng: 7.002 },
   },
   {
     id: 3,
-    name: 'Reddington Hospital, Victoria Island',
-    address: '12 Idowu Martins St, Victoria Island, Lagos',
-    phone: '+234 1 271 5341',
-    distance: '4.8 km',
-    position: { lat: 6.4295, lng: 3.4226 },
+    name: 'Kelsey Harrison Hospital',
+    address: 'Emenike Street, Diobu, Port Harcourt',
+    phone: '+234 905 555 8888',
+    distance: '4.1 km',
+    position: { lat: 4.775, lng: 7.011 },
   },
   {
     id: 4,
-    name: 'EKO Hospital',
-    address: '31 Mobolaji Bank Anthony Way, Ikeja, Lagos',
-    phone: '+234 1 271 6900',
-    distance: '15.2 km',
-    position: { lat: 6.5968, lng: 3.3482 },
+    name: 'Meridian Hospital',
+    address: '21 Igbodo street, Old G.R.A, Port Harcourt',
+    phone: '+234 803 123 9876',
+    distance: '5.6 km',
+    position: { lat: 4.832, lng: 7.014 },
   },
 ];

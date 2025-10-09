@@ -46,8 +46,8 @@ export default function Home() {
       (err) => {
         setError(`Error getting location: ${err.message}`);
         setIsLocating(false);
-        // Fallback to default location for demo purposes
-        const fallbackLocation = { lat: 6.465422, lng: 3.406448 };
+        // Fallback to default location for demo purposes (Port Harcourt)
+        const fallbackLocation = { lat: 4.8156, lng: 7.0498 };
         setPatientLocation(fallbackLocation);
         setShowMap(true);
       }
