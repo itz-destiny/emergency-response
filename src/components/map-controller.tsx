@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useMap } from 'react-leaflet';
 import { Marker, Popup } from 'react-leaflet';
 import { Hospital } from '@/lib/data';
-import L from 'leaflet';
+import L, { Map } from 'leaflet';
+import ReactDOMServer from 'react-dom/server';
 
 const hospitalIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/128/3308/3308823.png',
@@ -38,6 +38,7 @@ const responderPatientIcon = new L.divIcon({
   });
 
 interface MapControllerProps {
+  map: Map;
   patientPosition: [number, number] | null;
   hospitals: Hospital[];
   selectedHospital: Hospital | null;
@@ -48,12 +49,12 @@ interface MapControllerProps {
 }
 
 export function MapController({
+  map,
   patientPosition,
   hospitals,
   selectedHospital,
   responder,
 }: MapControllerProps) {
-  const map = useMap();
 
   useEffect(() => {
     if (patientPosition) {
@@ -73,42 +74,51 @@ export function MapController({
     }
   }, [responder, map]);
 
-  const hospitalMarkers = useMemo(() => {
-    return hospitals.map((hospital) => (
-      <Marker
-        key={hospital.id}
-        position={[hospital.location.lat, hospital.location.lng]}
-        icon={hospitalIcon}
-      >
-        <Popup>
-          <b>{hospital.name}</b>
-          <br />
-          Beds: {hospital.availability.beds} | Ambulances: {hospital.availability.ambulances}
-          <br />
-          Hotline: {hospital.hotline}
-        </Popup>
-      </Marker>
-    ));
-  }, [hospitals]);
+  useEffect(() => {
+    // Clear existing markers to prevent duplicates
+    map.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+            map.removeLayer(layer);
+        }
+    });
+
+    hospitals.forEach((hospital) => {
+        const popupContent = ReactDOMServer.renderToString(
+            <Popup>
+              <b>{hospital.name}</b>
+              <br />
+              Beds: {hospital.availability.beds} | Ambulances: {hospital.availability.ambulances}
+              <br />
+              Hotline: {hospital.hotline}
+            </Popup>
+        );
+        L.marker([hospital.location.lat, hospital.location.lng], { icon: hospitalIcon })
+        .addTo(map)
+        .bindPopup(popupContent);
+    });
+
+    if (patientPosition && !responder) {
+        const popupContent = ReactDOMServer.renderToString(<Popup>Your current location</Popup>);
+        L.marker(patientPosition, { icon: patientIcon })
+        .addTo(map)
+        .bindPopup(popupContent);
+    }
+
+    if (responder?.position) {
+        const popupContent = ReactDOMServer.renderToString(<Popup>Your position</Popup>);
+        L.marker(responder.position, { icon: responderIcon })
+        .addTo(map)
+        .bindPopup(popupContent);
+    }
+    
+    if (responder?.patientPosition) {
+        const popupContent = ReactDOMServer.renderToString(<Popup>Patient's Location</Popup>);
+        L.marker(responder.patientPosition, { icon: responderPatientIcon })
+        .addTo(map)
+        .bindPopup(popupContent);
+    }
+
+  }, [hospitals, patientPosition, responder, map]);
   
-  return (
-    <>
-      {hospitalMarkers}
-      {patientPosition && !responder && (
-        <Marker position={patientPosition} icon={patientIcon}>
-          <Popup>Your current location</Popup>
-        </Marker>
-      )}
-      {responder?.position && (
-        <Marker position={responder.position} icon={responderIcon}>
-            <Popup>Your position</Popup>
-        </Marker>
-      )}
-      {responder?.patientPosition && (
-        <Marker position={responder.patientPosition} icon={responderPatientIcon}>
-            <Popup>Patient's Location</Popup>
-        </Marker>
-      )}
-    </>
-  );
+  return null; // This component only controls the map, it doesn't render anything itself
 }

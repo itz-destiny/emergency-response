@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { MapContainer as LeafletMapContainer, TileLayer } from 'react-leaflet';
+import { useState, useEffect, useRef } from 'react';
 import type { Map } from 'leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -20,22 +20,32 @@ interface MapContainerProps {
 }
 
 const MapContainer = (props: MapContainerProps) => {
-  const { patientPosition } = props;
-  const initialCenter = patientPosition || [4.8156, 7.0498];
+  const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<Map | null>(null);
+  const { patientPosition } = props;
+
+  useEffect(() => {
+    if (mapRef.current && !map) {
+      const initialCenter = patientPosition || [4.8156, 7.0498];
+      const leafletMap = L.map(mapRef.current).setView(initialCenter, 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(leafletMap);
+      setMap(leafletMap);
+    }
+
+    // Cleanup function to destroy the map instance
+    return () => {
+      if (map) {
+        map.remove();
+        setMap(null);
+      }
+    };
+  }, []); // Run only once on mount
 
   return (
-    <LeafletMapContainer
-      center={initialCenter}
-      zoom={13}
-      style={{ height: '100%', width: '100%', zIndex: 0 }}
-      attributionControl={false}
-      whenCreated={setMap}
-      placeholder={<div className="bg-muted animate-pulse w-full h-full" />}
-    >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      {map ? <MapController {...props} /> : null}
-    </LeafletMapContainer>
+    <div style={{ height: '100%', width: '100%' }}>
+      <div ref={mapRef} style={{ height: '100%', width: '100%', zIndex: 0 }} />
+      {map ? <MapController map={map} {...props} /> : null}
+    </div>
   );
 };
 
