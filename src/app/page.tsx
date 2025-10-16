@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { hospitals as hospitalData, type Hospital } from '@/lib/data';
 import { HeartPulse, LocateFixed } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { UserNav } from '@/components/user-nav';
+import { useFirebase } from '@/firebase';
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
   ssr: false,
@@ -19,11 +21,17 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
 };
 
 export default function Home() {
-  const [patientPosition, setPatientPosition] = useState<[number, number] | null>([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
+  const { user } = useFirebase();
+  const [patientPosition, setPatientPosition] = useState<[number, number] | null>(null);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [hospitals] = useState<Hospital[]>(hospitalData);
 
+  // Set default position on mount
+  useState(() => {
+    setPatientPosition([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
+  });
+  
   const handleRequestEmergency = () => {
     setIsRequesting(true);
     if (navigator.geolocation) {
@@ -52,6 +60,10 @@ export default function Home() {
 
   return (
     <div className="flex h-full w-full flex-col relative overflow-hidden">
+       <div className="absolute top-4 right-4 z-[1000] flex items-center gap-4">
+        <UserNav />
+      </div>
+
       <div className="w-full h-full">
         <MapContainer
           patientPosition={patientPosition}
@@ -81,9 +93,9 @@ export default function Home() {
               size="lg"
               className="w-full py-6 text-lg font-bold"
               onClick={handleRequestEmergency}
-              disabled={isRequesting}
+              disabled={isRequesting || !user}
             >
-              {isRequesting ? 'Getting Location...' : 'Request Emergency'}
+              {isRequesting ? 'Getting Location...' : (user ? 'Request Emergency' : 'Login to Request Emergency')}
             </Button>
           </CardContent>
         </Card>
@@ -91,7 +103,7 @@ export default function Home() {
 
       <Button
           size="icon"
-          className="absolute top-4 right-4 z-[1000] bg-card/80 backdrop-blur-sm hover:bg-card border-border/50"
+          className="absolute top-20 right-4 z-[1000] bg-card/80 backdrop-blur-sm hover:bg-card border-border/50"
           variant="outline"
           onClick={handleRecenter}
           aria-label="Recenter map"

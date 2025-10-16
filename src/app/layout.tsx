@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'Rapid Response',
@@ -25,8 +26,10 @@ export default function RootLayout({
           'bg-background'
         )}
       >
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Toaster />
+        <FirebaseClientProvider>
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );
