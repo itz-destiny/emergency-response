@@ -15,9 +15,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full dark">
       <head>
-        <meta name="theme-color" content="#29ABE2" />
+        <meta name="theme-color" content="#111827" />
       </head>
       <body
         className={cn(

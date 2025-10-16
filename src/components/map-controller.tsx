@@ -5,21 +5,24 @@ import { Hospital } from '@/lib/data';
 import L, { Map } from 'leaflet';
 
 const hospitalIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/128/3308/3308823.png',
+  iconUrl: 'https://img.icons8.com/color/48/hospital-3.png',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32],
 });
 
-const patientIcon = new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/128/684/684908.png',
+const patientIcon = new L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div class="relative flex items-center justify-center">
+             <div class="absolute w-8 h-8 bg-primary/50 rounded-full animate-ping"></div>
+             <div class="relative w-4 h-4 bg-primary rounded-full border-2 border-white shadow-md"></div>
+           </div>`,
     iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-});
+    iconAnchor: [16, 16],
+  });
 
 const responderIcon = new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/128/10469/10469907.png',
+    iconUrl: 'https://img.icons8.com/fluency/48/ambulance.png',
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -40],
@@ -56,17 +59,19 @@ export function MapController({
 
   // Effect to update map view
   useEffect(() => {
+    if (!map) return;
     if (selectedHospital) {
-      map.setView([selectedHospital.location.lat, selectedHospital.location.lng], 15);
+      map.flyTo([selectedHospital.location.lat, selectedHospital.location.lng], 15);
     } else if (patientPosition) {
-      map.setView(patientPosition, 14);
+      map.flyTo(patientPosition, 14);
     } else if (responder?.position) {
-        map.setView(responder.position, 14);
+        map.flyTo(responder.position, 14);
     }
   }, [patientPosition, selectedHospital, responder?.position, map]);
 
   // Effect to update markers
   useEffect(() => {
+    if (!map) return;
     // Clear existing markers to prevent duplicates
     map.eachLayer((layer) => {
         if (layer instanceof L.Marker) {
@@ -75,7 +80,7 @@ export function MapController({
     });
 
     hospitals.forEach((hospital) => {
-        const popupContent = `<b>${hospital.name}</b><br/>Beds: ${hospital.availability.beds} | Ambulances: ${hospital.availability.ambulances}<br/>Hotline: ${hospital.hotline}`;
+        const popupContent = `<div class="p-1"><h3 class="font-bold text-base mb-1">${hospital.name}</h3><p class="text-sm text-muted-foreground">Beds: ${hospital.availability.beds} | Ambulances: ${hospital.availability.ambulances}</p><p class="text-sm text-muted-foreground">Hotline: ${hospital.hotline}</p></div>`;
         L.marker([hospital.location.lat, hospital.location.lng], { icon: hospitalIcon })
         .addTo(map)
         .bindPopup(popupContent);
