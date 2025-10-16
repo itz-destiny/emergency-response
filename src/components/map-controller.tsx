@@ -11,6 +11,13 @@ const hospitalIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+const selectedHospitalIcon = new L.Icon({
+    iconUrl: 'https://img.icons8.com/color/96/hospital-3.png',
+    iconSize: [48, 48],
+    iconAnchor: [24, 48],
+    popupAnchor: [0, -48],
+  });
+
 const patientIcon = new L.divIcon({
     className: 'custom-div-icon',
     html: `<div class="relative flex items-center justify-center">
@@ -43,6 +50,7 @@ interface MapControllerProps {
   patientPosition: [number, number] | null;
   hospitals: Hospital[];
   selectedHospital: Hospital | null;
+  onSelectHospital: (hospital: Hospital) => void;
   responder?: {
     position: [number, number];
     patientPosition?: [number, number];
@@ -54,6 +62,7 @@ export function MapController({
   patientPosition,
   hospitals,
   selectedHospital,
+  onSelectHospital,
   responder,
 }: MapControllerProps) {
 
@@ -80,16 +89,17 @@ export function MapController({
     });
 
     hospitals.forEach((hospital) => {
-        const popupContent = `<div class="p-1"><h3 class="font-bold text-base mb-1">${hospital.name}</h3><p class="text-sm text-muted-foreground">Beds: ${hospital.availability.beds} | Ambulances: ${hospital.availability.ambulances}</p><p class="text-sm text-muted-foreground">Hotline: ${hospital.hotline}</p></div>`;
-        L.marker([hospital.location.lat, hospital.location.lng], { icon: hospitalIcon })
+        const isSelected = selectedHospital?.id === hospital.id;
+        const marker = L.marker([hospital.location.lat, hospital.location.lng], { 
+            icon: isSelected ? selectedHospitalIcon : hospitalIcon 
+        })
         .addTo(map)
-        .bindPopup(popupContent);
+        .on('click', () => onSelectHospital(hospital));
     });
 
     if (patientPosition && !responder) {
         L.marker(patientPosition, { icon: patientIcon })
-        .addTo(map)
-        .bindPopup('Your current location');
+        .addTo(map);
     }
 
     if (responder?.position) {
@@ -104,7 +114,7 @@ export function MapController({
         .bindPopup("Patient's Location");
     }
 
-  }, [hospitals, patientPosition, responder, map]);
+  }, [hospitals, patientPosition, selectedHospital, onSelectHospital, responder, map]);
   
   return null; // This component only controls the map, it doesn't render anything itself
 }

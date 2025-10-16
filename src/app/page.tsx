@@ -5,10 +5,12 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { hospitals as hospitalData, type Hospital } from '@/lib/data';
-import { HeartPulse, LocateFixed } from 'lucide-react';
+import { HeartPulse, LocateFixed, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserNav } from '@/components/user-nav';
-import { useFirebase } from '@/firebase';
+import { useFirebase, addDocumentNonBlocking, useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
   ssr: false,
@@ -22,6 +24,8 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
 
 export default function Home() {
   const { user } = useFirebase();
+  const firestore = useFirestore();
+  const { toast } = useToast();
   const [patientPosition, setPatientPosition] = useState<[number, number] | null>(null);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -33,30 +37,114 @@ export default function Home() {
   });
   
   const handleRequestEmergency = () => {
+    if (!user) {
+      toast({ title: 'Please log in', description: 'You must be logged in to make a request.' });
+      return;
+    }
+    if (!selectedHospital || !patientPosition) {
+      toast({ title: 'No hospital selected', description: 'Please select a hospital from the map first.' });
+      return;
+    }
+
     setIsRequesting(true);
+    const requestsCollection = collection(firestore, 'requests');
+    const newRequest = {
+      userId: user.uid,
+      hospitalId: selectedHospital.id,
+      hospitalName: selectedHospital.name,
+      patientLocation: {
+        lat: patientPosition[0],
+        lng: patientPosition[1],
+      },
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    };
+
+    // Non-blocking write to Firestore
+    addDocumentNonBlocking(requestsCollection, newRequest);
+
+    toast({
+      title: 'Request Sent!',
+      description: `Your emergency request has been sent to ${selectedHospital.name}.`,
+    });
+
+    // Reset UI after a short delay
+    setTimeout(() => {
+      setSelectedHospital(null);
+      setIsRequesting(false);
+    }, 2000);
+  };
+  
+  const handleRecenter = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setPatientPosition([position.coords.latitude, position.coords.longitude]);
-          setIsRequesting(false);
         },
         (error) => {
           console.error("Error getting user's location:", error);
-          setPatientPosition([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
-          setIsRequesting(false);
+          toast({ variant: 'destructive', title: 'Location Error', description: "Could not get your current location."})
         },
         { enableHighAccuracy: true }
       );
     } else {
-      console.error('Geolocation is not supported by this browser.');
-      setPatientPosition([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
-      setIsRequesting(false);
+      toast({ variant: 'destructive', title: 'Location Error', description: "Geolocation is not supported by this browser."})
     }
   };
-  
-  const handleRecenter = () => {
-    handleRequestEmergency();
-  };
+
+  const handleSelectHospital = (hospital: Hospital | null) => {
+    setSelectedHospital(hospital);
+  }
+
+  const renderCardContent = () => {
+    if (selectedHospital) {
+      return (
+        <>
+          <CardTitle className="flex items-center gap-3">
+            <Building className="text-primary w-6 h-6" />
+            <span className="text-xl">{selectedHospital.name}</span>
+          </CardTitle>
+          <CardContent className="flex flex-col gap-4 pt-4">
+             <p className="text-sm text-muted-foreground">
+              Beds: {selectedHospital.availability.beds} | Ambulances: {selectedHospital.availability.ambulances}
+            </p>
+            <Button
+              size="lg"
+              className="w-full py-6 text-lg font-bold"
+              onClick={handleRequestEmergency}
+              disabled={isRequesting || !user}
+            >
+              {isRequesting ? 'Sending...' : `Send Request to ${selectedHospital.name}`}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedHospital(null)}>Cancel</Button>
+          </CardContent>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <HeartPulse className="text-primary w-6 h-6" />
+              <span className="text-xl">Request Assistance</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-muted-foreground text-sm">
+              Select a hospital on the map to send an emergency request.
+            </p>
+             <Button
+              size="lg"
+              className="w-full py-6 text-lg font-bold"
+              disabled={true}
+            >
+              Select a Hospital
+            </Button>
+          </CardContent>
+      </>
+    )
+  }
 
   return (
     <div className="flex h-full w-full flex-col relative overflow-hidden">
@@ -69,6 +157,7 @@ export default function Home() {
           patientPosition={patientPosition}
           hospitals={hospitals}
           selectedHospital={selectedHospital}
+          onSelectHospital={handleSelectHospital}
         />
       </div>
 
@@ -79,25 +168,7 @@ export default function Home() {
         transition={{ type: 'spring', stiffness: 120, damping: 20, delay: 0.2 }}
       >
         <Card className="w-full max-w-lg mx-auto shadow-2xl bg-card/80 backdrop-blur-lg border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <HeartPulse className="text-primary w-6 h-6" />
-              <span className="text-xl">Request Assistance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <p className="text-muted-foreground text-sm">
-              In case of an emergency, tap the button below. Your location will be used to dispatch the nearest responder.
-            </p>
-            <Button
-              size="lg"
-              className="w-full py-6 text-lg font-bold"
-              onClick={handleRequestEmergency}
-              disabled={isRequesting || !user}
-            >
-              {isRequesting ? 'Getting Location...' : (user ? 'Request Emergency' : 'Login to Request Emergency')}
-            </Button>
-          </CardContent>
+          {renderCardContent()}
         </Card>
       </motion.div>
 
