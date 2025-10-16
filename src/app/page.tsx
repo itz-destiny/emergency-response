@@ -4,6 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { hospitals as hospitalData, type Hospital } from '@/lib/data';
 import { HeartPulse, LocateFixed, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -30,6 +31,7 @@ export default function Home() {
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [hospitals] = useState<Hospital[]>(hospitalData);
+  const [message, setMessage] = useState('');
 
   // Set default position on mount
   useState(() => {
@@ -56,6 +58,7 @@ export default function Home() {
         lat: patientPosition[0],
         lng: patientPosition[1],
       },
+      message: message,
       status: 'pending',
       createdAt: serverTimestamp(),
     };
@@ -72,6 +75,7 @@ export default function Home() {
     setTimeout(() => {
       setSelectedHospital(null);
       setIsRequesting(false);
+      setMessage('');
     }, 2000);
   };
   
@@ -99,26 +103,36 @@ export default function Home() {
   const renderCardContent = () => {
     if (selectedHospital) {
       return (
-        <>
-          <CardTitle className="flex items-center gap-3">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
             <Building className="text-primary w-6 h-6" />
-            <span className="text-xl">{selectedHospital.name}</span>
-          </CardTitle>
-          <CardContent className="flex flex-col gap-4 pt-4">
-             <p className="text-sm text-muted-foreground">
-              Beds: {selectedHospital.availability.beds} | Ambulances: {selectedHospital.availability.ambulances}
-            </p>
-            <Button
-              size="lg"
-              className="w-full py-6 text-lg font-bold"
-              onClick={handleRequestEmergency}
-              disabled={isRequesting || !user}
-            >
-              {isRequesting ? 'Sending...' : `Send Request to ${selectedHospital.name}`}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedHospital(null)}>Cancel</Button>
-          </CardContent>
-        </>
+            <div className='flex-1'>
+                <h3 className="text-xl font-semibold">{selectedHospital.name}</h3>
+                 <p className="text-sm text-muted-foreground">
+                  Beds: {selectedHospital.availability.beds} | Ambulances: {selectedHospital.availability.ambulances}
+                </p>
+            </div>
+          </div>
+
+          <Textarea 
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Add a brief message (e.g., 'unconscious', 'difficulty breathing')..."
+            className="mb-4 bg-muted border-border"
+          />
+         
+          <Button
+            size="lg"
+            className="w-full py-6 text-lg font-bold"
+            onClick={handleRequestEmergency}
+            disabled={isRequesting || !user}
+          >
+            {isRequesting ? 'Sending...' : 'Confirm & Send Request'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedHospital(null)} className="w-full mt-2">
+            Select a Different Hospital
+          </Button>
+        </CardContent>
       )
     }
 
@@ -167,7 +181,7 @@ export default function Home() {
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 120, damping: 20, delay: 0.2 }}
       >
-        <Card className="w-full max-w-lg mx-auto shadow-2xl bg-card/80 backdrop-blur-lg border-border/50">
+        <Card className="w-full max-w-lg mx-auto shadow-2xl bg-card/90 backdrop-blur-lg border-border/50">
           {renderCardContent()}
         </Card>
       </motion.div>

@@ -124,6 +124,57 @@
         "lastName",
         "email"
       ]
+    },
+    "Request": {
+      "title": "Request",
+      "type": "object",
+      "description": "Stores emergency requests from users.",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "hospitalId": {
+          "type": "string"
+        },
+        "hospitalName": {
+          "type": "string"
+        },
+        "patientLocation": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lng": {
+              "type": "number"
+            }
+          }
+        },
+        "message": {
+          "type": "string",
+          "description": "An optional message from the user about the emergency."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "accepted",
+            "enroute",
+            "resolved",
+            "cancelled"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "hospitalId",
+        "patientLocation",
+        "status"
+      ]
     }
   },
   "auth": {
