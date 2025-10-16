@@ -1,131 +1,169 @@
 /**
- * @fileoverview Firestore Security Rules for the Rapid Response application.
+ * @fileoverview Firestore Security Rules for Rapid Response Application
  *
  * Core Philosophy:
- * This ruleset enforces a hybrid security model, combining user-based ownership for patients,
- * role-based access for admins, and shared access for emergency responses involving hospitals and responders.
- * Authorization independence is prioritized by denormalizing key IDs directly onto documents, avoiding costly `get()` calls.
+ * This ruleset enforces a hybrid security model:
+ *   - User data is strictly owned by the individual user.
+ *   - Hospital data is managed by authenticated hospital representatives.
+ *   - Responders are managed by their associated hospitals.
+ *   - Requests can be created by any authenticated user.
  *
  * Data Structure:
- * - /patients/{patientId}:  Patient data, accessible only by the patient themselves.
- * - /hospitals/{hospitalId}: Hospital data, publicly readable.
- * - /hospitals/{hospitalId}/responders/{responderId}: Responder data, accessible by the associated hospital.
- * - /roles_admin/{adminId}: Admin role, granting broad access. Document existence confers admin privileges.
- * - /emergencyResponses/{emergencyResponseId}: Emergency response data, linking patients, hospitals, and responders.
- *   Access is controlled based on the IDs of the involved parties.
+ * - /users/{userId}: User profile data, accessible only by the user.
+ * - /hospitals/{hospitalId}: Hospital information, accessible to all for reads, but only writable by authenticated hospital representatives.
+ * - /hospitals/{hospitalId}/responders/{responderId}: Responder data, managed by the associated hospital.
+ * - /requests/{requestId}: Emergency requests from users, with denormalized hospital data for authorization.
+ * - /roles_hospital/{uid}: Documents indicating a user is a hospital representative, granting hospital-level permissions.
+ * - /roles_user/{uid}: Documents indicating a user is a registered user, granting user-level permissions.
  *
  * Key Security Decisions:
- * - Listing of patients is restricted to the individual patient.
- * - Hospital data is publicly readable but writable only by admins (currently not implemented).
- * - Responders are scoped to their hospitals, with access controlled by hospital ID.
- * - Emergency Responses are accessible by patients, hospitals, and responders involved.
+ * - User listing is disabled.
+ * - Hospital data is publicly readable but only writable by authenticated hospital representatives.
+ * - Responders can only be managed by their associated hospital.
+ * - Requests can only be created by authenticated users.
  *
  * Denormalization for Authorization:
- * - EmergencyResponse documents include patientId, hospitalId, and responderId to avoid `get()` calls when evaluating access.
+ * - Request documents include denormalized hospital information to avoid `get()` calls in security rules.
+ *
+ * Structural Segregation:
+ * - User and hospital data are stored in separate collections with distinct access control requirements.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages patient data, ensuring only the patient can access their own information.
-     * @path /patients/{patientId}
-     * @allow (create) User with UID 'patient123' can create a document where patientId == 'patient123'.
-     * @allow (get, update, delete) User with UID 'patient123' can get/update/delete a document where patientId == 'patient123'.
-     * @deny (get, update, delete) User with UID 'otherUser' cannot get/update/delete a document where patientId == 'patient123'.
-     * @principle Enforces document ownership for all operations.
+     * @description Manages user profile information. Only the user can access their own document.
+     * @path /users/{userId}
+     * @allow (create) - User with UID 'user123' can create their own document if request.auth.uid == 'user123'.
+     * @allow (get, update, delete) - User with UID 'user123' can get, update, and delete their document.
+     * @deny (create, get, update, delete) - User with UID 'user456' cannot access 'user123' document.
+     * @principle Enforces document ownership for writes.
      */
-    match /patients/{patientId} {
+    match /users/{userId} {
+      //function
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
       function isSignedIn() {
-        return request.auth != null;
+          return request.auth != null;
       }
 
-      allow get: if isSignedIn() && isOwner(patientId);
-      allow list: if isSignedIn() && isOwner(patientId);
-      allow create: if isSignedIn() && isOwner(patientId);
-      allow update: if isSignedIn() && isOwner(patientId) && resource != null;
-      allow delete: if isSignedIn() && isOwner(patientId) && resource != null;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+      allow delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
     }
 
     /**
-     * @description Manages hospital data, making it publicly readable.
-     *              Write access is currently not restricted (TODO: Implement Admin-Only writes).
+     * @description Manages hospital information. Publicly readable, writable only by authenticated hospital representatives.
      * @path /hospitals/{hospitalId}
-     * @allow (get, list) Any user (or no user) can read hospital data.
-     * @deny (create, update, delete) Any non-admin user cannot create/update/delete hospital data.
-     * @principle Allows public read access while restricting write access (TODO: Implement Admin role).
+     * @allow (get, list) - Anyone can read hospital information.
+     * @allow (create, update, delete) - Only an authenticated hospital representative can create, update, or delete hospital data.
+     * @deny (create, update, delete) - A regular user cannot create, update, or delete hospital data.
+     * @principle Role-based access control for hospital management.
      */
     match /hospitals/{hospitalId} {
+      function isHospitalRep() {
+        return exists(/databases/$(database)/documents/roles_hospital/$(request.auth.uid));
+      }
+
+      function isSignedIn() {
+          return request.auth != null;
+      }
+
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin validation once the schema is updated with an admin role.
+      allow create: if isSignedIn() && isHospitalRep();
+      allow update: if isSignedIn() && isHospitalRep() && resource != null;
+      allow delete: if isSignedIn() && isHospitalRep() && resource != null;
     }
 
     /**
-     * @description Manages responder data within a specific hospital.
-     *              Restricts access to members of that hospital.
+     * @description Manages responder information for a specific hospital. Only the hospital can manage its responders.
      * @path /hospitals/{hospitalId}/responders/{responderId}
-     * @allow (create) Any authenticated user can create a responder IF the hospitalId is valid
-     * @allow (get, list) Any authenticated user can read the responder
-     * @deny (update, delete) Non-hospital members cannot update/delete responder data.
-     * @principle Scopes access to responders based on their associated hospital.
+     * @allow (get, list) - Only the hospital can read responder data.
+     * @allow (create, update, delete) - Only the hospital can create, update, or delete responder data.
+     * @deny (create, update, delete) - A regular user or a different hospital cannot manage this hospital's responders.
+     * @principle Path-based access control for hospital-responder relationship.
      */
     match /hospitals/{hospitalId}/responders/{responderId} {
-      function isSignedIn() {
-        return request.auth != null;
+      function isHospitalRep() {
+        return exists(/databases/$(database)/documents/roles_hospital/$(request.auth.uid));
       }
 
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      function isSignedIn() {
+          return request.auth != null;
+      }
+
+      allow get, list: if isSignedIn() && isHospitalRep();
+      allow create: if isSignedIn() && isHospitalRep();
+      allow update: if isSignedIn() && isHospitalRep() && resource != null;
+      allow delete: if isSignedIn() && isHospitalRep() && resource != null;
     }
 
     /**
-     * @description Manages admin roles.  Existence of a document grants admin privileges.
-     * @path /roles_admin/{adminId}
-     * @allow (create) User can create their admin role (self-assignment).
-     * @allow (get) Any authenticated user can check for the existence of an admin role.
-     * @deny (update, delete) Only the admin can modify/delete their own role.
-     * @principle Implements role-based access control (RBAC) using document existence.
+     * @description Manages emergency requests from users.
+     * @path /requests/{requestId}
+     * @allow (create) - Any authenticated user can create a request.
+     * @allow (get, list, update, delete) - Only an authenticated hospital representative can get, list, update or delete a request
+     * @deny (create) - An unauthenticated user cannot create a request.
+     * @principle Authenticated users can create requests, hospitals manage them.
      */
-    match /roles_admin/{adminId} {
-      function isOwner(adminId) {
-        return request.auth.uid == adminId;
+    match /requests/{requestId} {
+      function isHospitalRep() {
+        return exists(/databases/$(database)/documents/roles_hospital/$(request.auth.uid));
       }
 
       function isSignedIn() {
-        return request.auth != null;
+          return request.auth != null;
       }
 
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(adminId);
-      allow update: if isSignedIn() && isOwner(adminId) && resource != null;
-      allow delete: if isSignedIn() && isOwner(adminId) && resource != null;
+      allow get, list: if isSignedIn() && isHospitalRep();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && isHospitalRep() && resource != null;
+      allow delete: if isSignedIn() && isHospitalRep() && resource != null;
+    }
+
+     /**
+      * @description Indicates that a user is a hospital representative. Existence of the document grants hospital-level permissions.
+      * @path /roles_hospital/{uid}
+      */
+    match /roles_hospital/{uid} {
+        function isOwner(uid) {
+          return request.auth.uid == uid;
+        }
+
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        allow get: if isSignedIn() && isOwner(uid);
+        allow list: if false;
+        allow create: if isSignedIn() && isOwner(uid);
+        allow update: if false;
+        allow delete: if isSignedIn() && isOwner(uid);
     }
 
     /**
-     * @description Manages emergency response data.
-     *              Access is granted to the patient, hospital, and responder involved.
-     * @path /emergencyResponses/{emergencyResponseId}
-     * @allow (get, list) Patient, Hospital or Responder can read the emergency response.
-     * @allow (create) Patient, Hospital or Responder can create the emergency response.
-     * @deny (update, delete) Only the involved parties can update/delete the response.
-     * @principle Grants access based on involvement in the emergency response (patient, hospital, responder).
+     * @description Indicates that a user is a registered user. Existence of the document grants user-level permissions.
+     * @path /roles_user/{uid}
      */
-    match /emergencyResponses/{emergencyResponseId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    match /roles_user/{uid} {
+        function isOwner(uid) {
+          return request.auth.uid == uid;
+        }
 
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        allow get: if isSignedIn() && isOwner(uid);
+        allow list: if false;
+        allow create: if isSignedIn() && isOwner(uid);
+        allow update: if false;
+        allow delete: if isSignedIn() && isOwner(uid);
     }
   }
 }

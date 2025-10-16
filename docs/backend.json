@@ -1,56 +1,50 @@
 {
   "entities": {
-    "Patient": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Patient",
+      "title": "User",
       "type": "object",
-      "description": "Represents a patient requesting emergency assistance.",
+      "description": "Represents a user of the Rapid Response system.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Patient entity."
+          "description": "Unique identifier for the User entity."
         },
-        "name": {
+        "firstName": {
           "type": "string",
-          "description": "The patient's name."
+          "description": "First name of the user."
         },
-        "phoneNumber": {
+        "lastName": {
           "type": "string",
-          "description": "The patient's phone number."
+          "description": "Last name of the user."
         },
-        "locationLatitude": {
-          "type": "number",
-          "description": "The patient's latitude coordinate."
-        },
-        "locationLongitude": {
-          "type": "number",
-          "description": "The patient's longitude coordinate."
-        },
-        "emergencyDescription": {
+        "email": {
           "type": "string",
-          "description": "Description of the emergency."
+          "description": "Email address of the user.",
+          "format": "email"
         },
-        "requestTimestamp": {
+        "phone": {
           "type": "string",
-          "description": "Timestamp of when the emergency request was made.",
+          "description": "Phone number of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
-        "name",
-        "phoneNumber",
-        "locationLatitude",
-        "locationLongitude",
-        "emergencyDescription",
-        "requestTimestamp"
+        "firstName",
+        "lastName",
+        "email"
       ]
     },
     "Hospital": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Hospital",
       "type": "object",
-      "description": "Represents a hospital providing emergency services.",
+      "description": "Represents a hospital registered in the Rapid Response system.",
       "properties": {
         "id": {
           "type": "string",
@@ -58,26 +52,31 @@
         },
         "name": {
           "type": "string",
-          "description": "The name of the hospital."
+          "description": "Name of the hospital."
         },
-        "locationLatitude": {
-          "type": "number",
-          "description": "The hospital's latitude coordinate."
-        },
-        "locationLongitude": {
-          "type": "number",
-          "description": "The hospital's longitude coordinate."
+        "location": {
+          "type": "string",
+          "description": "Geographic location of the hospital (e.g., latitude, longitude)."
         },
         "hotline": {
           "type": "string",
-          "description": "The hospital's hotline phone number."
+          "description": "Hotline phone number for the hospital."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the hospital.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the hospital was registered.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "name",
-        "locationLatitude",
-        "locationLongitude",
+        "location",
         "hotline"
       ]
     },
@@ -85,7 +84,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Responder",
       "type": "object",
-      "description": "Represents a responder (medic) affiliated with a hospital.",
+      "description": "Represents a medical responder associated with a hospital.",
       "properties": {
         "id": {
           "type": "string",
@@ -95,97 +94,36 @@
           "type": "string",
           "description": "Reference to Hospital. (Relationship: Hospital 1:N Responder)"
         },
-        "name": {
+        "firstName": {
           "type": "string",
-          "description": "The responder's name."
+          "description": "First name of the responder."
         },
-        "phoneNumber": {
+        "lastName": {
           "type": "string",
-          "description": "The responder's phone number."
+          "description": "Last name of the responder."
         },
-        "availabilityStatus": {
+        "email": {
           "type": "string",
-          "description": "The responder's current availability status (e.g., 'Available', 'Busy', 'Offline')."
+          "description": "Email address of the responder.",
+          "format": "email"
         },
-        "locationLatitude": {
-          "type": "number",
-          "description": "The responder's latitude coordinate."
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the responder."
         },
-        "locationLongitude": {
-          "type": "number",
-          "description": "The responder's longitude coordinate."
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the responder account was created.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "hospitalId",
-        "name",
-        "phoneNumber",
-        "availabilityStatus"
-      ]
-    },
-    "Admin": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Admin",
-      "type": "object",
-      "description": "Represents an administrator of the Rapid Response system.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Admin entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The administrator's name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The administrator's email address.",
-          "format": "email"
-        }
-      },
-      "required": [
-        "id",
-        "name",
+        "firstName",
+        "lastName",
         "email"
       ]
-    },
-    "Emergency": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Emergency",
-      "type": "object",
-      "description": "Represents a single emergency event.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Emergency."
-        },
-        "location": {
-          "type": "object",
-          "properties": {
-            "lat": { "type": "number" },
-            "lng": { "type": "number" }
-          },
-          "required": ["lat", "lng"]
-        },
-        "status": {
-          "type": "string",
-          "enum": ["requested", "accepted", "resolved"]
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "responderId": {
-          "type": "string",
-          "description": "ID of the responder who accepted the emergency."
-        },
-        "userId": {
-          "type": "string",
-          "description": "ID of the user who created the emergency."
-        }
-      },
-      "required": ["id", "location", "status", "createdAt", "userId"]
     }
   },
   "auth": {
@@ -193,5 +131,110 @@
       "password",
       "anonymous"
     ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Uses path-based ownership, so only the user can access their own document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hospitals/{hospitalId}",
+        "definition": {
+          "entityName": "Hospital",
+          "schema": {
+            "$ref": "#/backend/entities/Hospital"
+          },
+          "description": "Stores hospital information. ",
+          "params": [
+            {
+              "name": "hospitalId",
+              "description": "The unique identifier of the hospital."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hospitals/{hospitalId}/responders/{responderId}",
+        "definition": {
+          "entityName": "Responder",
+          "schema": {
+            "$ref": "#/backend/entities/Responder"
+          },
+          "description": "Stores responder information associated with a specific hospital. Path-based ownership ensures only the hospital can manage its responders.",
+          "params": [
+            {
+              "name": "hospitalId",
+              "description": "The unique identifier of the hospital."
+            },
+            {
+              "name": "responderId",
+              "description": "The unique identifier of the responder."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/requests/{requestId}",
+        "definition": {
+          "entityName": "Request",
+          "schema": {
+            "$ref": "#/backend/entities/Request"
+          },
+          "description": "Stores emergency requests from users. Includes denormalized hospital information to avoid `get()` calls in security rules and maintain authorization independence. Includes userId to simplify security rules.",
+          "params": [
+            {
+              "name": "requestId",
+              "description": "The unique identifier of the emergency request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_hospital/{uid}",
+        "definition": {
+          "entityName": "HospitalRole",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Indicates that a user is a hospital representative. Existence of the document grants hospital-level permissions.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The Firebase UID of the hospital representative."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_user/{uid}",
+        "definition": {
+          "entityName": "UserRole",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Indicates that a user is a registered user. Existence of the document grants user-level permissions.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The Firebase UID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes authorization independence and efficient data retrieval for the Rapid Response application. It leverages structural segregation to manage different access control requirements for users, hospitals, and responders. Key to this structure is the separation of user and hospital data into distinct collections with path-based ownership for user-specific data and membership maps for collaborative data access. The inclusion of the `requests` subcollection enables hospitals to manage incoming requests efficiently. Authorization Independence is achieved through denormalization, specifically including hospital details within the request documents, this eliminates the need for complex `get()` calls in security rules. All these design choices allows for secure `list` operations and easier maintainability of the rules. The `roles_hospital/{uid}` and `roles_user/{uid}` collections, combined with `request.auth.uid`, enforces Role-Based Access Control (RBAC) without custom claims."
   }
 }
