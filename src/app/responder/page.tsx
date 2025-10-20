@@ -4,7 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { emergencies as mockEmergencies, type Emergency } from '@/lib/data';
+import { emergencies as mockEmergencies, type Emergency, hospitals } from '@/lib/data';
 import { List, MapIcon, X } from 'lucide-react';
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
@@ -61,6 +61,7 @@ export default function ResponderPage() {
       </div>
       <div className="w-2/3 relative">
         <MapContainer
+          hospitals={hospitals}
           responder={{
             position: responderPosition,
             patientPosition: getPatientPosition(),

@@ -47,10 +47,10 @@ const responderPatientIcon = new L.divIcon({
 
 interface MapControllerProps {
   map: Map;
-  patientPosition: [number, number] | null;
-  hospitals: Hospital[];
-  selectedHospital: Hospital | null;
-  onSelectHospital: (hospital: Hospital) => void;
+  patientPosition?: [number, number] | null;
+  hospitals?: Hospital[];
+  selectedHospital?: Hospital | null;
+  onSelectHospital?: (hospital: Hospital) => void;
   responder?: {
     position: [number, number];
     patientPosition?: [number, number];
@@ -88,14 +88,16 @@ export function MapController({
         }
     });
 
-    hospitals.forEach((hospital) => {
-        const isSelected = selectedHospital?.id === hospital.id;
-        const marker = L.marker([hospital.location.lat, hospital.location.lng], { 
-            icon: isSelected ? selectedHospitalIcon : hospitalIcon 
-        })
-        .addTo(map)
-        .on('click', () => onSelectHospital(hospital));
-    });
+    if (hospitals) {
+      hospitals.forEach((hospital) => {
+          const isSelected = selectedHospital?.id === hospital.id;
+          const marker = L.marker([hospital.location.lat, hospital.location.lng], { 
+              icon: isSelected ? selectedHospitalIcon : hospitalIcon 
+          })
+          .addTo(map)
+          .on('click', () => onSelectHospital?.(hospital));
+      });
+    }
 
     if (patientPosition && !responder) {
         L.marker(patientPosition, { icon: patientIcon })
