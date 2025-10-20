@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { hospitals } from '@/lib/data';
 import { X } from 'lucide-react';
 import { ClientTimestamp } from '@/components/client-timestamp';
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase } from '@/firebase';
+import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { type Request as RequestType } from '@/lib/types';
 
@@ -23,21 +23,44 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
   lng: 7.0498,
 };
 
+// Mock function to get hospitalId for a logged-in responder
+// In a real app, this would come from the responder's profile
+const getResponderHospitalId = async (firestore: any, userId: string): Promise<string | null> => {
+  // For demonstration, we'll assume the responder belongs to UPTH
+  // A real implementation would query the 'responders' collection
+  if (userId) {
+     // This is a placeholder. A real app would have a 'responders' collection
+     // and you would query it to find the hospitalId for the given user (responder) id.
+     // e.g. const responderDoc = await getDoc(doc(firestore, 'responders', userId));
+    return 'UPTH001';
+  }
+  return null;
+};
+
+
 export default function ResponderPage() {
+  const { user } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [hospitalId, setHospitalId] = useState<string | null>(null);
 
-  const requestsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'requests');
-  }, [firestore]);
+  useEffect(() => {
+    if (user && firestore) {
+      getResponderHospitalId(firestore, user.uid).then(setHospitalId);
+    }
+  }, [user, firestore]);
 
-  const pendingRequestsQuery = useMemoFirebase(() => {
-    if (!requestsCollection) return null;
-    return query(requestsCollection, where('status', '==', 'pending'));
-  }, [requestsCollection]);
+  const requestsQuery = useMemoFirebase(() => {
+    if (!firestore || !hospitalId) return null;
+    // Secure query: only get requests for the responder's hospital
+    return query(
+      collection(firestore, 'requests'),
+      where('hospitalId', '==', hospitalId),
+      where('status', '==', 'pending')
+    );
+  }, [firestore, hospitalId]);
 
-  const { data: emergencies, isLoading } = useCollection<RequestType>(pendingRequestsQuery);
+  const { data: emergencies, isLoading } = useCollection<RequestType>(requestsQuery);
 
   const [responderPosition] = useState<[number, number]>([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
   const [selectedEmergency, setSelectedEmergency] = useState<RequestType & { id: string } | null>(null);
@@ -47,7 +70,7 @@ export default function ResponderPage() {
   };
 
   const handleAcceptRequest = () => {
-    if (!selectedEmergency) return;
+    if (!selectedEmergency || !firestore) return;
 
     const requestRef = doc(firestore, 'requests', selectedEmergency.id);
     updateDocumentNonBlocking(requestRef, { status: 'accepted' });
@@ -74,7 +97,7 @@ export default function ResponderPage() {
         <CardContent className="flex-1 overflow-y-auto">
           {isLoading && <p>Loading emergencies...</p>}
           {!isLoading && (!emergencies || emergencies.length === 0) && (
-            <p className="text-muted-foreground">No pending emergencies.</p>
+            <p className="text-muted-foreground">No pending emergencies for your hospital.</p>
           )}
           <div className="space-y-4">
             {emergencies?.map((emergency) => (
