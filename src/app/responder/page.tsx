@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { emergencies as mockEmergencies, type Emergency, hospitals } from '@/lib/data';
 import { List, MapIcon, X } from 'lucide-react';
+import { ClientTimestamp } from '@/components/client-timestamp';
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
   ssr: false,
@@ -52,7 +53,9 @@ export default function ResponderPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{emergency.description}</p>
-                  <p className="text-xs text-muted-foreground mt-2">{new Date(emergency.timestamp).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <ClientTimestamp timestamp={emergency.timestamp} />
+                  </p>
                 </CardContent>
               </Card>
             ))}
