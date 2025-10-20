@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, initiateEmailSignUp, setDocumentNonBlocking } from '@/firebase';
+import { useAuth, setDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { useFirestore } from '@/firebase/provider';
