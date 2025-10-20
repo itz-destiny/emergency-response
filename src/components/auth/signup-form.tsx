@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, setDocumentNonBlocking } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { useFirestore } from '@/firebase/provider';
@@ -47,41 +48,37 @@ export function SignUpForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+    
     try {
-      // This will create the user but not sign them in immediately.
-      // The onAuthStateChanged listener will handle the user creation event.
-      const userCredential = await auth.createUserWithEmailAndPassword(values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      if (user) {
-        // Create user profile in Firestore
-        const userRef = doc(firestore, 'users', user.uid);
-        const userData = {
-          id: user.uid,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          email: values.email,
-          createdAt: serverTimestamp(),
-        };
-        // Use non-blocking write
-        setDocumentNonBlocking(userRef, userData, { merge: true });
+      // Create user profile in Firestore
+      const userRef = doc(firestore, 'users', user.uid);
+      const userData = {
+        id: user.uid,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        createdAt: serverTimestamp(),
+      };
+      // This is a non-blocking write, but we await the user creation first.
+      setDocumentNonBlocking(userRef, userData, { merge: true });
 
-        // Create role document
-        const roleRef = doc(firestore, 'roles_user', user.uid);
-        setDocumentNonBlocking(roleRef, { role: 'user' }, {});
+      // Create role document
+      const roleRef = doc(firestore, 'roles_user', user.uid);
+      setDocumentNonBlocking(roleRef, { role: 'user' }, { merge: true });
 
-        toast({
-          title: 'Account Created!',
-          description: "We've created your account for you.",
-        });
-        router.push('/'); // Navigate to home page after successful signup
-      } else {
-        throw new Error("User creation failed.");
-      }
-
+      toast({
+        title: 'Account Created!',
+        description: "We've created your account for you. Redirecting...",
+      });
+      router.push('/'); // Navigate to home page after successful signup
+    
     } catch (error: any) {
-      let title = 'An unexpected error occurred.';
-      let description = 'Please try again.';
+      let title = 'Sign-up Error';
+      let description = 'An unexpected error occurred. Please try again.';
+      
       if (error instanceof FirebaseError) {
         switch (error.code) {
           case 'auth/email-already-in-use':
@@ -92,18 +89,26 @@ export function SignUpForm() {
             title = 'Weak Password';
             description = 'Your password is too weak. Please choose a stronger one.';
             break;
+          case 'auth/invalid-email':
+            title: 'Invalid Email';
+            description = 'Please enter a valid email address.';
+            break;
           default:
-            title = 'Sign-up Error';
-            description = error.message;
+            // This can happen if firestore rules deny the write
+            title = 'Permission Denied';
+            description = 'Could not save user profile. Please contact support.';
+            console.error('Firestore Write Error:', error); // Log the actual error
             break;
         }
+      } else {
+         console.error('Generic Signup Error:', error);
       }
+
       toast({
         variant: 'destructive',
         title: title,
         description: description,
       });
-    } finally {
       setIsLoading(false);
     }
   }
