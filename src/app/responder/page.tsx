@@ -1,17 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { hospitals } from '@/lib/data';
+import { hospitals, emergencies as mockEmergencies, type Emergency } from '@/lib/data';
 import { X } from 'lucide-react';
 import { ClientTimestamp } from '@/components/client-timestamp';
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { type Request as RequestType } from '@/lib/types';
-
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
   ssr: false,
@@ -23,65 +19,33 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
   lng: 7.0498,
 };
 
-// Mock function to get hospitalId for a logged-in responder
-// In a real app, this would come from the responder's profile
-const getResponderHospitalId = async (userId: string): Promise<string | null> => {
-  // For demonstration, we'll assume the responder belongs to UPTH
-  // A real implementation would query the 'responders' collection
-  if (userId) {
-     // This is a placeholder. A real app would have a 'responders' collection
-     // and you would query it to find the hospitalId for the given user (responder) id.
-     // e.g. const responderDoc = await getDoc(doc(firestore, 'responders', userId));
-    return 'UPTH001';
-  }
-  return null;
-};
-
+type EmergencyWithId = Emergency & { id: string };
 
 export default function ResponderPage() {
-  const { user } = useFirebase();
-  const firestore = useFirestore();
   const { toast } = useToast();
-  const [hospitalId, setHospitalId] = useState<string | null>(null);
+  
+  const [emergencies, setEmergencies] = useState<EmergencyWithId[]>(mockEmergencies.map(e => ({...e, id: e.id})));
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      getResponderHospitalId(user.uid).then(setHospitalId);
-    }
-  }, [user]);
-
-  const requestsQuery = useMemoFirebase(() => {
-    // CRITICAL: Ensure BOTH firestore and hospitalId are available.
-    // If not, return null to prevent the query from running.
-    if (!firestore || !hospitalId) {
-      return null;
-    }
-    // Secure query: only get requests for the responder's hospital
-    return query(
-      collection(firestore, 'requests'),
-      where('hospitalId', '==', hospitalId),
-      where('status', '==', 'pending')
-    );
-  }, [firestore, hospitalId]);
-
-  const { data: emergencies, isLoading } = useCollection<RequestType>(requestsQuery);
 
   const [responderPosition] = useState<[number, number]>([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
-  const [selectedEmergency, setSelectedEmergency] = useState<RequestType & { id: string } | null>(null);
+  const [selectedEmergency, setSelectedEmergency] = useState<EmergencyWithId | null>(null);
 
-  const handleSelectEmergency = (emergency: RequestType & { id: string }) => {
+  const handleSelectEmergency = (emergency: EmergencyWithId) => {
     setSelectedEmergency(emergency);
   };
 
   const handleAcceptRequest = () => {
-    if (!selectedEmergency || !firestore) return;
+    if (!selectedEmergency) return;
 
-    const requestRef = doc(firestore, 'requests', selectedEmergency.id);
-    updateDocumentNonBlocking(requestRef, { status: 'accepted' });
+    // Simulate accepting the request by filtering it out from the local state
+    setEmergencies(currentEmergencies => 
+      currentEmergencies.filter(e => e.id !== selectedEmergency.id)
+    );
 
     toast({
       title: 'Request Accepted',
-      description: `You are now handling the request for ${selectedEmergency.hospitalName}.`,
+      description: `You are now handling the request.`,
     });
     
     setSelectedEmergency(null);
@@ -89,7 +53,7 @@ export default function ResponderPage() {
 
   const getPatientPosition = (): [number, number] | undefined => {
     if (!selectedEmergency) return undefined;
-    return [selectedEmergency.patientLocation.lat, selectedEmergency.patientLocation.lng];
+    return [selectedEmergency.patient.location.lat, selectedEmergency.patient.location.lng];
   }
 
   return (
@@ -111,12 +75,12 @@ export default function ResponderPage() {
                 onClick={() => handleSelectEmergency(emergency)}
               >
                 <CardHeader>
-                  <CardTitle className="text-lg">Request for {emergency.hospitalName}</CardTitle>
+                  <CardTitle className="text-lg">Request from {emergency.patient.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{emergency.message || 'No message provided.'}</p>
+                  <p className="text-sm text-muted-foreground">{emergency.description || 'No message provided.'}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    <ClientTimestamp timestamp={emergency.createdAt} />
+                    <ClientTimestamp timestamp={emergency.timestamp} />
                   </p>
                 </CardContent>
               </Card>
@@ -142,8 +106,8 @@ export default function ResponderPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <p><strong>Hospital:</strong> {selectedEmergency.hospitalName}</p>
-              <p><strong>Details:</strong> {selectedEmergency.message || "N/A"}</p>
+              <p><strong>Patient:</strong> {selectedEmergency.patient.name}</p>
+              <p><strong>Details:</strong> {selectedEmergency.description || "N/A"}</p>
               <Button className="w-full mt-4" onClick={handleAcceptRequest}>Accept Request</Button>
             </CardContent>
           </Card>
