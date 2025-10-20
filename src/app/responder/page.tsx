@@ -8,7 +8,7 @@ import { hospitals } from '@/lib/data';
 import { X } from 'lucide-react';
 import { ClientTimestamp } from '@/components/client-timestamp';
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { type Request as RequestType } from '@/lib/types';
 
@@ -25,7 +25,7 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
 
 // Mock function to get hospitalId for a logged-in responder
 // In a real app, this would come from the responder's profile
-const getResponderHospitalId = async (firestore: any, userId: string): Promise<string | null> => {
+const getResponderHospitalId = async (userId: string): Promise<string | null> => {
   // For demonstration, we'll assume the responder belongs to UPTH
   // A real implementation would query the 'responders' collection
   if (userId) {
@@ -45,10 +45,10 @@ export default function ResponderPage() {
   const [hospitalId, setHospitalId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user && firestore) {
-      getResponderHospitalId(firestore, user.uid).then(setHospitalId);
+    if (user) {
+      getResponderHospitalId(user.uid).then(setHospitalId);
     }
-  }, [user, firestore]);
+  }, [user]);
 
   const requestsQuery = useMemoFirebase(() => {
     if (!firestore || !hospitalId) return null;
