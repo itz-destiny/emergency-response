@@ -51,7 +51,11 @@ export default function ResponderPage() {
   }, [user]);
 
   const requestsQuery = useMemoFirebase(() => {
-    if (!firestore || !hospitalId) return null;
+    // CRITICAL: Ensure BOTH firestore and hospitalId are available.
+    // If not, return null to prevent the query from running.
+    if (!firestore || !hospitalId) {
+      return null;
+    }
     // Secure query: only get requests for the responder's hospital
     return query(
       collection(firestore, 'requests'),
