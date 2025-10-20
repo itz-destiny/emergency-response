@@ -19,7 +19,7 @@ export default function ActionHandler() {
   const [newPassword, setNewPassword] = useState('');
   const [verifying, setVerifying] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess]_useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const modeParam = searchParams.get('mode');
