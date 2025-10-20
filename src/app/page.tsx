@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,9 +34,9 @@ export default function Home() {
   const [message, setMessage] = useState('');
 
   // Set default position on mount
-  useState(() => {
+  useEffect(() => {
     setPatientPosition([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
-  });
+  }, []);
   
   const handleRequestEmergency = () => {
     if (!user) {
