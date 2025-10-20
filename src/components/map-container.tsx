@@ -10,9 +10,9 @@ import { type Hospital } from '@/lib/data';
 
 interface MapContainerProps {
   patientPosition: [number, number] | null;
-  hospitals: Hospital[];
-  selectedHospital: Hospital | null;
-  onSelectHospital: (hospital: Hospital | null) => void;
+  hospitals?: Hospital[];
+  selectedHospital?: Hospital | null;
+  onSelectHospital?: (hospital: Hospital | null) => void;
   responder?: {
     position: [number, number];
     patientPosition?: [number, number];
