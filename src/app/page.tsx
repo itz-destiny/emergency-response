@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { hospitals as hospitalData, type Hospital } from '@/lib/data';
 import { HeartPulse, LocateFixed, Building } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserNav } from '@/components/user-nav';
-import { useFirebase, addDocumentNonBlocking, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useSupabase } from '@/supabase/provider';
+import { MessageInput } from '@/components/messages/message-input';
+import { MessageList } from '@/components/messages/message-list';
 
 const MapContainer = dynamic(() => import('@/components/map-container'), {
   ssr: false,
@@ -24,21 +24,28 @@ const NIGERIA_RIVERS_STATE_PORT_HARCOURT = {
 };
 
 export default function Home() {
-  const { user } = useFirebase();
-  const firestore = useFirestore();
+  const { supabase } = useSupabase();
   const { toast } = useToast();
   const [patientPosition, setPatientPosition] = useState<[number, number] | null>(null);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [hospitals] = useState<Hospital[]>(hospitalData);
-  const [message, setMessage] = useState('');
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   // Set default position on mount
   useEffect(() => {
     setPatientPosition([NIGERIA_RIVERS_STATE_PORT_HARCOURT.lat, NIGERIA_RIVERS_STATE_PORT_HARCOURT.lng]);
   }, []);
   
-  const handleRequestEmergency = () => {
+  const handleRequestEmergency = async () => {
     if (!user) {
       toast({ title: 'Please log in', description: 'You must be logged in to make a request.' });
       return;
@@ -49,34 +56,42 @@ export default function Home() {
     }
 
     setIsRequesting(true);
-    const requestsCollection = collection(firestore, 'requests');
-    const newRequest = {
-      userId: user.uid,
-      hospitalId: selectedHospital.id,
-      hospitalName: selectedHospital.name,
-      patientLocation: {
-        lat: patientPosition[0],
-        lng: patientPosition[1],
-      },
-      message: message,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-    };
 
-    // Non-blocking write to Firestore
-    addDocumentNonBlocking(requestsCollection, newRequest);
+    try {
+      const { error } = await supabase
+        .from('emergency_requests')
+        .insert([{
+          user_id: user.id,
+          hospital_id: selectedHospital.id,
+          hospital_name: selectedHospital.name,
+          patient_location: {
+            lat: patientPosition[0],
+            lng: patientPosition[1],
+          },
+          status: 'pending',
+        }]);
 
-    toast({
-      title: 'Request Sent!',
-      description: `Your emergency request has been sent to ${selectedHospital.name}.`,
-    });
+      if (error) throw error;
 
-    // Reset UI after a short delay
-    setTimeout(() => {
-      setSelectedHospital(null);
+      toast({
+        title: 'Request Sent!',
+        description: `Your emergency request has been sent to ${selectedHospital.name}.`,
+      });
+
+      // Reset UI after a short delay
+      setTimeout(() => {
+        setSelectedHospital(null);
+        setIsRequesting(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error sending request:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send emergency request. Please try again.',
+      });
       setIsRequesting(false);
-      setMessage('');
-    }, 2000);
+    }
   };
   
   const handleRecenter = () => {
@@ -114,11 +129,9 @@ export default function Home() {
             </div>
           </div>
 
-          <Textarea 
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Add a brief message (e.g., 'unconscious', 'difficulty breathing')..."
-            className="mb-4 bg-muted border-border"
+          <MessageInput 
+            hospitalId={selectedHospital.id} 
+            className="mb-4"
           />
          
           <Button
@@ -132,6 +145,11 @@ export default function Home() {
           <Button variant="ghost" size="sm" onClick={() => setSelectedHospital(null)} className="w-full mt-2">
             Select a Different Hospital
           </Button>
+
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">Message History</h4>
+            <MessageList hospitalId={selectedHospital.id} />
+          </div>
         </CardContent>
       )
     }

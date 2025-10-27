@@ -51,7 +51,6 @@ export function UserNav() {
     return 'U';
   }
 
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

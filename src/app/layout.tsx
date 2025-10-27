@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import SupabaseProvider from '@/supabase/provider';
 
 export const metadata: Metadata = {
   title: 'Rapid Response',
@@ -27,8 +28,10 @@ export default function RootLayout({
         )}
       >
         <FirebaseClientProvider>
-          <main className="flex-1 flex flex-col">{children}</main>
-          <Toaster />
+          <SupabaseProvider>
+            <main className="flex-1 flex flex-col">{children}</main>
+            <Toaster />
+          </SupabaseProvider>
         </FirebaseClientProvider>
       </body>
     </html>
